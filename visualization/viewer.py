@@ -302,7 +302,7 @@ class PlotDiar:
     @classmethod
     def _hms(cls, s):
         """
-        conversion of seconds into hours, minutes and secondes
+        conversion of seconds into hours, minutes and seconds
         :param s:
         :return: int, int, float
         """

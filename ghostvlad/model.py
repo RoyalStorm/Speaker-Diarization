@@ -45,7 +45,7 @@ class VladPooling(keras.engine.Layer):
 
     def compute_output_shape(self, input_shape):
         assert input_shape
-        return (input_shape[0][0], self.k_centers * input_shape[0][-1])
+        return input_shape[0][0], self.k_centers * input_shape[0][-1]
 
     def call(self, x):
         # feat : bz x W x H x D, cluster_score: bz X W x H x clusters.

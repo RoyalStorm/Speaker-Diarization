@@ -42,50 +42,47 @@ SAVED_MODEL_NAME = 'pretrained/saved_model.uisrnn_benchmark'
 def append2dict(speakerSlice, spk_period):
     key = list(spk_period.keys())[0]
     value = list(spk_period.values())[0]
-    timeDict = {}
-    timeDict['start'] = int(value[0] + 0.5)
-    timeDict['stop'] = int(value[1] + 0.5)
-    if (key in speakerSlice):
-        speakerSlice[key].append(timeDict)
+    time_dict = {'start': int(value[0] + 0.5), 'stop': int(value[1] + 0.5)}
+    if key in speakerSlice:
+        speakerSlice[key].append(time_dict)
     else:
-        speakerSlice[key] = [timeDict]
+        speakerSlice[key] = [time_dict]
 
     return speakerSlice
 
 
-def arrangeResult(labels,
-                  time_spec_rate):  # {'1': [{'start':10, 'stop':20}, {'start':30, 'stop':40}], '2': [{'start':90, 'stop':100}]}
-    lastLabel = labels[0]
-    speakerSlice = {}
+def arrange_result(labels, time_spec_rate):  # {'1': [{'start':10, 'stop':20}, {'start':30, 'stop':40}], '2': [{'start':90, # 'stop':100}]}
+    last_label = labels[0]
+    speaker_slice = {}
     j = 0
     for i, label in enumerate(labels):
-        if (label == lastLabel):
+        if label == last_label:
             continue
-        speakerSlice = append2dict(speakerSlice, {lastLabel: (time_spec_rate * j, time_spec_rate * i)})
+        speaker_slice = append2dict(speaker_slice, {last_label: (time_spec_rate * j, time_spec_rate * i)})
         j = i
-        lastLabel = label
-    speakerSlice = append2dict(speakerSlice, {lastLabel: (time_spec_rate * j, time_spec_rate * (len(labels)))})
-    return speakerSlice
+        last_label = label
+    speaker_slice = append2dict(speaker_slice, {last_label: (time_spec_rate * j, time_spec_rate * (len(labels)))})
+    return speaker_slice
 
 
-def genMap(intervals):  # interval slices to maptable
-    slicelen = [sliced[1] - sliced[0] for sliced in intervals.tolist()]
-    mapTable = {}  # vad erased time to origin time, only split points
+def gen_map(intervals):  # interval slices to maptable
+    slice_len = [sliced[1] - sliced[0] for sliced in intervals.tolist()]
+    map_table = {}  # vad erased time to origin time, only split points
     idx = 0
     for i, sliced in enumerate(intervals.tolist()):
-        mapTable[idx] = sliced[0]
-        idx += slicelen[i]
-    mapTable[sum(slicelen)] = intervals[-1, -1]
+        map_table[idx] = sliced[0]
+        idx += slice_len[i]
+    map_table[sum(slice_len)] = intervals[-1, -1]
 
-    keys = [k for k, _ in mapTable.items()]
+    keys = [k for k, _ in map_table.items()]
     keys.sort()
-    return mapTable, keys
+    return map_table, keys
 
 
-def fmtTime(timeInMillisecond):
-    millisecond = timeInMillisecond % 1000
-    minute = timeInMillisecond // 1000 // 60
-    second = (timeInMillisecond - minute * 60 * 1000) // 1000
+def fmt_time(time_in_milliseconds):
+    millisecond = time_in_milliseconds % 1000
+    minute = time_in_milliseconds // 1000 // 60
+    second = (time_in_milliseconds - minute * 60 * 1000) // 1000
     time = '{}:{:02d}.{}'.format(minute, second, millisecond)
     return time
 
@@ -112,8 +109,8 @@ def lin_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
 #                               |-------------------|
 def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, embedding_per_second=0.5, overlap_rate=0.5):
     wav, intervals = load_wav(path, sr=sr)
-    linear_spect = lin_spectogram_from_wav(wav, hop_length, win_length, n_fft)
-    mag, _ = librosa.magphase(linear_spect)  # magnitude
+    linear_spectpgram = lin_spectogram_from_wav(wav, hop_length, win_length, n_fft)
+    mag, _ = librosa.magphase(linear_spectpgram)  # magnitude
     mag_T = mag.T
     freq, time = mag_T.shape
     spec_mag = mag_T
@@ -124,8 +121,8 @@ def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, embeddi
     cur_slide = 0.0
     utterances_spec = []
 
-    while (True):  # slide window.
-        if (cur_slide + spec_len > time):
+    while True:  # slide window.
+        if cur_slide + spec_len > time:
             break
         spec_mag = mag_T[:, int(cur_slide + 0.5): int(cur_slide + spec_len + 0.5)]
 
@@ -151,7 +148,7 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
               'hop_length': 160,
               'n_classes': 5994,
               'sampling_rate': 16000,
-              'normalize': True,
+              'normalize': True
               }
 
     network_eval = spkModel.vggvox_resnet2d_icassp(input_dim=params['dim'],
@@ -161,11 +158,11 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
     model_args, _, inference_args = uisrnn.parse_arguments()
     model_args.observation_dim = 512
-    uisrnnModel = uisrnn.UISRNN(model_args)
-    uisrnnModel.load(SAVED_MODEL_NAME)
+    uisrnn_model = uisrnn.UISRNN(model_args)
+    uisrnn_model.load(SAVED_MODEL_NAME)
 
     specs, intervals = load_data(wav_path, embedding_per_second=embedding_per_second, overlap_rate=overlap_rate)
-    mapTable, keys = genMap(intervals)
+    map_table, keys = gen_map(intervals)
 
     feats = []
     for spec in specs:
@@ -174,39 +171,39 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
         feats += [v]
 
     feats = np.array(feats)[:, 0, :].astype(float)  # [splits, embedding dim]
-    predicted_label = uisrnnModel.predict(feats, inference_args)
+    predicted_label = uisrnn_model.predict(feats, inference_args)
 
     time_spec_rate = 1000 * (1.0 / embedding_per_second) * (1.0 - overlap_rate)  # speaker embedding every ?ms
     center_duration = int(1000 * (1.0 / embedding_per_second) // 2)
-    speakerSlice = arrangeResult(predicted_label, time_spec_rate)
+    speaker_slice = arrange_result(predicted_label, time_spec_rate)
 
-    for spk, timeDicts in speakerSlice.items():  # time map to orgin wav(contains mute)
+    for spk, timeDicts in speaker_slice.items():  # time map to origin wav (contains mute)
         for tid, timeDict in enumerate(timeDicts):
             s = 0
             e = 0
             for i, key in enumerate(keys):
-                if (s != 0 and e != 0):
+                if s != 0 and e != 0:
                     break
-                if (s == 0 and key > timeDict['start']):
+                if s == 0 and key > timeDict['start']:
                     offset = timeDict['start'] - keys[i - 1]
-                    s = mapTable[keys[i - 1]] + offset
-                if (e == 0 and key > timeDict['stop']):
+                    s = map_table[keys[i - 1]] + offset
+                if e == 0 and key > timeDict['stop']:
                     offset = timeDict['stop'] - keys[i - 1]
-                    e = mapTable[keys[i - 1]] + offset
+                    e = map_table[keys[i - 1]] + offset
 
-            speakerSlice[spk][tid]['start'] = s
-            speakerSlice[spk][tid]['stop'] = e
+            speaker_slice[spk][tid]['start'] = s
+            speaker_slice[spk][tid]['stop'] = e
 
-    for spk, timeDicts in speakerSlice.items():
+    for spk, timeDicts in speaker_slice.items():
         print('========= ' + str(spk) + ' =========')
         for timeDict in timeDicts:
             s = timeDict['start']
             e = timeDict['stop']
-            s = fmtTime(s)  # change point moves to the center of the slice
-            e = fmtTime(e)
+            s = fmt_time(s)  # change point moves to the center of the slice
+            e = fmt_time(e)
             print(s + ' ==> ' + e)
 
-    p = PlotDiar(map=speakerSlice, wav=wav_path, gui=True, size=(25, 6))
+    p = PlotDiar(map=speaker_slice, wav=wav_path, gui=True, size=(25, 6))
     p.draw()
     p.plot.show()
 
