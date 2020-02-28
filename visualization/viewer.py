@@ -1,4 +1,3 @@
-import matplotlib
 import matplotlib.pyplot as plot
 from matplotlib.patches import Rectangle
 from player import AudioPlayer
@@ -8,11 +7,12 @@ class PlotDiar:
     """
     A viewer of segmentation
     """
+
     def __init__(self, map=None, wav=None, title='', gui=False, pick=False, vgrid=False, size=(18, 9)):
         self.rect_picked = None
         self.rect_color = (0.0, 0.6, 1.0, 1.0)  # '#0099FF'
         self.rect_selected_color = (0.75, 0.75, 0, 1.0)  # 'y'
-        self.cluster_colors = [(0.0, 0.6, 1.0, 1.0), (0.0, 1.0, 0.6, 1.0), (0.6, 0.0, 1.0, 1.0), 
+        self.cluster_colors = [(0.0, 0.6, 1.0, 1.0), (0.0, 1.0, 0.6, 1.0), (0.6, 0.0, 1.0, 1.0),
                                (0.6, 1.0, 0.0, 1.0), (1.0, 0.0, 0.6, 1.0), (1.0, 0.6, 0.0, 1.0)]
 
         plot.rcParams['keymap.fullscreen'] = 'ctrl+f'
@@ -121,16 +121,16 @@ class PlotDiar:
         y = 0
         labels_pos = []
         labels = []
-        for i,cluster in enumerate(sorted(self.map.keys())):
+        for i, cluster in enumerate(sorted(self.map.keys())):
             labels.append(cluster)
             labels_pos.append(y + self.height // 2)
             for row in self.map[cluster]:
-                x = row['start'] /1000
+                x = row['start'] / 1000
                 self.time_stamp.append(x)
-                self.time_stamp.append(row['stop'] /1000)
-                w = row['stop'] /1000 - row['start'] /1000
-                self.maxx = max(self.maxx, row['stop'] /1000)
-                c = self.cluster_colors[i%len(self.cluster_colors)]
+                self.time_stamp.append(row['stop'] / 1000)
+                w = row['stop'] / 1000 - row['start'] / 1000
+                self.maxx = max(self.maxx, row['stop'] / 1000)
+                c = self.cluster_colors[i % len(self.cluster_colors)]
                 rect = plot.Rectangle((x, y), w, self.height,
                                       color=c, picker=self.pick)
                 self.ax.add_patch(rect)
@@ -157,10 +157,9 @@ class PlotDiar:
         self.time_stamp.sort()
 
         if self.vgrid:
-            for x in  self.time_stamp:
+            for x in self.time_stamp:
                 self.ax.plot([x, x], [0, self.maxy], linestyle=':',
                              color='#AAAAAA')
-
 
     def _dec_right(self, min, max):
         """
@@ -216,7 +215,7 @@ class PlotDiar:
         elif event.key == 'ctrl+left':
             plot.xlim(0, diff)
         elif event.key == 'alt+right':
-            self.time_stamp_idx = min(len(self.time_stamp)-1, self.time_stamp_idx + 1)
+            self.time_stamp_idx = min(len(self.time_stamp) - 1, self.time_stamp_idx + 1)
             if self.audio is not None:
                 self.audio.pause()
                 self.audio.seek(self.time_stamp[self.time_stamp_idx])
@@ -230,7 +229,7 @@ class PlotDiar:
         elif event.key is None and self.audio is not None:
             self.audio.play()
         elif event.key == ' ' and self.audio is not None:
-            if(self.audio.playing()):
+            if (self.audio.playing()):
                 self.audio.pause()
             else:
                 self.audio.play()

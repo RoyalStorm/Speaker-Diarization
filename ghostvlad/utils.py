@@ -2,6 +2,7 @@
 import librosa
 import numpy as np
 
+
 # ===============================================
 #       code from Arsha for loading data.
 # ===============================================
@@ -19,7 +20,7 @@ def load_wav(vid_path, sr, mode='train'):
 
 
 def lin_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
-    linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length) # linear spectrogram
+    linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)  # linear spectrogram
     return linear.T
 
 
@@ -30,13 +31,11 @@ def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, spec_le
     mag_T = mag.T
     freq, time = mag_T.shape
     if mode == 'train':
-        randtime = np.random.randint(0, time-spec_len)
-        spec_mag = mag_T[:, randtime:randtime+spec_len]
+        randtime = np.random.randint(0, time - spec_len)
+        spec_mag = mag_T[:, randtime:randtime + spec_len]
     else:
         spec_mag = mag_T
     # preprocessing, subtract mean, divided by time-wise var
     mu = np.mean(spec_mag, 0, keepdims=True)
     std = np.std(spec_mag, 0, keepdims=True)
     return (spec_mag - mu) / (std + 1e-5)
-
-

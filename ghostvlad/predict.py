@@ -1,17 +1,16 @@
 from __future__ import absolute_import
 from __future__ import print_function
-import os
-import sys
-import numpy as np
 
-import toolkits
-import preprocess
-
-import pdb
 # ===========================================
 #        Parse the argument
 # ===========================================
 import argparse
+import os
+
+import numpy as np
+import preprocess
+import toolkits
+
 parser = argparse.ArgumentParser()
 # set up training configuration.
 parser.add_argument('--gpu', default='', type=str)
@@ -30,8 +29,8 @@ parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 
 global args
 args = parser.parse_args()
 
-def main():
 
+def main():
     # gpu configuration
     toolkits.initialize_GPU(args)
 
@@ -39,7 +38,7 @@ def main():
     # ==================================
     #       Get Train/Val.
     # ==================================
-    
+
     total_list = [os.path.join(args.data_path, file) for file in os.listdir(args.data_path)]
     unique_list = np.unique(total_list)
 
@@ -80,14 +79,14 @@ def main():
     feats = []
     for ID in unique_list:
         specs = preprocess.load_data(ID, split=False, win_length=params['win_length'], sr=params['sampling_rate'],
-                             hop_length=params['hop_length'], n_fft=params['nfft'],
-                             min_slice=params['min_slice'])
+                                     hop_length=params['hop_length'], n_fft=params['nfft'],
+                                     min_slice=params['min_slice'])
         specs = np.expand_dims(np.expand_dims(specs[0], 0), -1)
-    
+
         v = network_eval.predict(specs)
         feats += [v]
 
-    feats = np.array(feats)[:,0,:]
+    feats = np.array(feats)[:, 0, :]
     preprocess.similar(feats)
 
 

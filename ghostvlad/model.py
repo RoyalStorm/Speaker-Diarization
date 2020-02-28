@@ -1,10 +1,11 @@
-from __future__ import print_function
 from __future__ import absolute_import
-import keras
-import tensorflow as tf
-import keras.backend as K
+from __future__ import print_function
 
 import backbone
+import keras
+import keras.backend as K
+import tensorflow as tf
+
 weight_decay = 1e-4
 
 
@@ -29,6 +30,7 @@ class VladPooling(keras.engine.Layer):
     '''
     This layer follows the NetVlad, GhostVlad
     '''
+
     def __init__(self, mode, k_centers, g_centers=0, **kwargs):
         self.k_centers = k_centers
         self.g_centers = g_centers
@@ -36,14 +38,14 @@ class VladPooling(keras.engine.Layer):
         super(VladPooling, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        self.cluster = self.add_weight(shape=[self.k_centers+self.g_centers, input_shape[0][-1]],
+        self.cluster = self.add_weight(shape=[self.k_centers + self.g_centers, input_shape[0][-1]],
                                        name='centers',
                                        initializer='orthogonal')
         self.built = True
 
     def compute_output_shape(self, input_shape):
         assert input_shape
-        return (input_shape[0][0], self.k_centers*input_shape[0][-1])
+        return (input_shape[0][0], self.k_centers * input_shape[0][-1])
 
     def call(self, x):
         # feat : bz x W x H x D, cluster_score: bz X W x H x clusters.
@@ -54,13 +56,13 @@ class VladPooling(keras.engine.Layer):
         # A : bz x W x H x clusters
         max_cluster_score = K.max(cluster_score, -1, keepdims=True)
         exp_cluster_score = K.exp(cluster_score - max_cluster_score)
-        A = exp_cluster_score / K.sum(exp_cluster_score, axis=-1, keepdims = True)
+        A = exp_cluster_score / K.sum(exp_cluster_score, axis=-1, keepdims=True)
 
         # Now, need to compute the residual, self.cluster: clusters x D
-        A = K.expand_dims(A, -1)    # A : bz x W x H x clusters x 1
-        feat_broadcast = K.expand_dims(feat, -2)    # feat_broadcast : bz x W x H x 1 x D
-        feat_res = feat_broadcast - self.cluster    # feat_res : bz x W x H x clusters x D
-        weighted_res = tf.multiply(A, feat_res)     # weighted_res : bz x W x H x clusters x D
+        A = K.expand_dims(A, -1)  # A : bz x W x H x clusters x 1
+        feat_broadcast = K.expand_dims(feat, -2)  # feat_broadcast : bz x W x H x 1 x D
+        feat_res = feat_broadcast - self.cluster  # feat_res : bz x W x H x clusters x D
+        weighted_res = tf.multiply(A, feat_res)  # weighted_res : bz x W x H x clusters x D
         cluster_res = K.sum(weighted_res, [1, 2])
 
         if self.mode == 'gvlad':
@@ -78,11 +80,11 @@ def amsoftmax_loss(y_true, y_pred, scale=30, margin=0.35):
 
 
 def vggvox_resnet2d_icassp(input_dim=(257, 250, 1), num_class=8631, mode='train', args=None):
-    net=args.net
-    loss=args.loss
-    vlad_clusters=args.vlad_cluster
-    ghost_clusters=args.ghost_cluster
-    bottleneck_dim=args.bottleneck_dim
+    net = args.net
+    loss = args.loss
+    vlad_clusters = args.vlad_cluster
+    ghost_clusters = args.ghost_cluster
+    bottleneck_dim = args.bottleneck_dim
     aggregation = args.aggregation_mode
     mgpu = len(keras.backend.tensorflow_backend._get_available_gpus())
 
@@ -124,14 +126,15 @@ def vggvox_resnet2d_icassp(input_dim=(257, 250, 1), num_class=8631, mode='train'
         x = VladPooling(k_centers=vlad_clusters, mode='vlad', name='vlad_pool')([x_fc, x_k_center])
 
     elif aggregation == 'gvlad':
-        x_k_center = keras.layers.Conv2D(vlad_clusters+ghost_clusters, (7, 1),
+        x_k_center = keras.layers.Conv2D(vlad_clusters + ghost_clusters, (7, 1),
                                          strides=(1, 1),
                                          kernel_initializer='orthogonal',
                                          use_bias=True, trainable=True,
                                          kernel_regularizer=keras.regularizers.l2(weight_decay),
                                          bias_regularizer=keras.regularizers.l2(weight_decay),
                                          name='gvlad_center_assignment')(x)
-        x = VladPooling(k_centers=vlad_clusters, g_centers=ghost_clusters, mode='gvlad', name='gvlad_pool')([x_fc, x_k_center])
+        x = VladPooling(k_centers=vlad_clusters, g_centers=ghost_clusters, mode='gvlad', name='gvlad_pool')(
+            [x_fc, x_k_center])
 
     else:
         raise IOError('==> unknown aggregation mode')
@@ -181,8 +184,11 @@ def vggvox_resnet2d_icassp(input_dim=(257, 250, 1), num_class=8631, mode='train'
         if mgpu > 1:
             model = ModelMGPU(model, gpus=mgpu)
         # set up optimizer.
-        if args.optimizer == 'adam':  opt = keras.optimizers.Adam(lr=1e-3)
-        elif args.optimizer =='sgd':  opt = keras.optimizers.SGD(lr=0.1, momentum=0.9, decay=0.0, nesterov=True)
-        else: raise IOError('==> unknown optimizer type')
+        if args.optimizer == 'adam':
+            opt = keras.optimizers.Adam(lr=1e-3)
+        elif args.optimizer == 'sgd':
+            opt = keras.optimizers.SGD(lr=0.1, momentum=0.9, decay=0.0, nesterov=True)
+        else:
+            raise IOError('==> unknown optimizer type')
         model.compile(optimizer=opt, loss=trnloss, metrics=['acc'])
     return model

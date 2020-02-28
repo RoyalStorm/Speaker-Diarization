@@ -18,7 +18,7 @@ import setuptools
 VERSION = '0.0.6'
 
 with open('README.md', 'r') as file_object:
-  LONG_DESCRIPTION = file_object.read()
+    LONG_DESCRIPTION = file_object.read()
 
 setuptools.setup(
     name='uisrnn',

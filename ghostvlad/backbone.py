@@ -1,11 +1,11 @@
-from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import print_function
 
 from keras import layers
+from keras.layers import Activation, Conv2D, Input
+from keras.layers import BatchNormalization
+from keras.layers import MaxPooling2D
 from keras.regularizers import l2
-from keras.layers import Activation, Conv1D, Conv2D, Input, Lambda
-from keras.layers import BatchNormalization, Flatten, Dense, Reshape
-from keras.layers import MaxPooling2D, AveragePooling2D, GlobalAveragePooling2D
 
 weight_decay = 1e-4
 
@@ -220,5 +220,3 @@ def resnet_2D_v2(input_dim, mode='train'):
     x5 = identity_block_2D(x5, 3, [512, 512, 2048], stage=5, block='c', trainable=True)
     y = MaxPooling2D((3, 1), strides=(2, 1), name='mpool2')(x5)
     return inputs, y
-
-
