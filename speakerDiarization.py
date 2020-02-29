@@ -65,7 +65,7 @@ def arrange_result(labels, time_spec_rate):  # {'1': [{'start':10, 'stop':20}, {
     return speaker_slice
 
 
-def gen_map(intervals):  # interval slices to maptable
+def gen_map(intervals):  # interval slices to map table
     slice_len = [sliced[1] - sliced[0] for sliced in intervals.tolist()]
     map_table = {}  # vad erased time to origin time, only split points
     idx = 0
@@ -209,4 +209,4 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
 
 if __name__ == '__main__':
-    main(r'wavs/rmdmy.wav', embedding_per_second=1.2, overlap_rate=0.4)
+    main(r'wavs/cal.wav', embedding_per_second=1.2, overlap_rate=0.4)

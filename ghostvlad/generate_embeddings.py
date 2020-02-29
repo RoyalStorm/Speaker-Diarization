@@ -38,9 +38,9 @@ def similar(matrix):  # calc speaker-embeddings similarity in pretty format outp
             dist = matrix[i, :] * matrix[j, :]
             dist = np.linalg.norm(matrix[i, :] - matrix[j, :])
             print('%.2f  ' % dist, end='')
-            if ((j + 1) % 3 == 0 and j != 0):
+            if (j + 1) % 3 == 0 and j != 0:
                 print("| ", end='')
-        if ((i + 1) % 3 == 0 and i != 0):
+        if (i + 1) % 3 == 0 and i != 0:
             print('\n')
             print("*" * 80, end='')
         print("\n")
@@ -94,12 +94,12 @@ def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=5
     cur_spec = 0
     cur_speaker = speakers[0]
     i = 0
-    while (True):
-        if (cur_spec + win_spec > time):
+    while True:
+        if cur_spec + win_spec > time:
             break
         spec_mag = mag_T[:, cur_spec:cur_spec + win_spec]
 
-        if (cur_spec + win_spec // 2 > change_points[i]):  # cur win_spec span to the next speaker
+        if cur_spec + win_spec // 2 > change_points[i]:  # cur win_spec span to the next speaker
             i += 1
             cur_speaker = speakers[i]
 

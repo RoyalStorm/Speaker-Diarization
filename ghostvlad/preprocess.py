@@ -37,9 +37,9 @@ def similar(matrix):  # calc speaker-embeddings similarity in pretty format outp
             dist = matrix[i, :] * matrix[j, :]
             dist = np.linalg.norm(matrix[i, :] - matrix[j, :])
             print('%.2f  ' % dist, end='')
-            if ((j + 1) % 3 == 0 and j != 0):
+            if (j + 1) % 3 == 0 and j != 0:
                 print("| ", end='')
-        if ((i + 1) % 3 == 0 and i != 0):
+        if (i + 1) % 3 == 0 and i != 0:
             print('\n')
             print("*" * 80, end='')
         print("\n")
@@ -75,7 +75,7 @@ def load_data(path, split=False, win_length=400, sr=16000, hop_length=160, n_fft
 
     utterances_spec = []
 
-    if (split):
+    if split:
         minSpec = min_slice // (1000 // (sr // hop_length))  # The minimum timestep of each slice in spectrum
         randStarts = np.random.randint(0, time, 10)  # generate 10 slices at most.
         for start in randStarts:
@@ -165,7 +165,7 @@ def main():
             specs = load_data(utter_path, split=True, win_length=params['win_length'], sr=params['sampling_rate'],
                               hop_length=params['hop_length'], n_fft=params['nfft'],
                               min_slice=params['min_slice'])
-            if (len(specs) < 1):
+            if len(specs) < 1:
                 continue
             for spec in specs:
                 spec = np.expand_dims(np.expand_dims(spec, 0), -1)
