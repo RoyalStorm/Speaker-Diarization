@@ -15,7 +15,7 @@ import toolkits
 parser = argparse.ArgumentParser()
 # set up training configuration.
 parser.add_argument('--gpu', default='', type=str)
-parser.add_argument('--resume', default=r'pretrained/weights.h5', type=str)
+parser.add_argument('--resume', default=r'pre_trained/weights.h5', type=str)
 parser.add_argument('--data_path', default='4persons', type=str)
 # set up network configuration.
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)

@@ -6,10 +6,10 @@ import librosa
 import numpy as np
 
 import uisrnn
+from ghostvlad import toolkits
 
 sys.path.append('ghostvlad')
-sys.path.append('visualization')
-import toolkits
+sys.path.append('src/visualization')
 import model as spkModel
 from viewer import PlotDiar
 
@@ -21,7 +21,7 @@ import argparse
 parser = argparse.ArgumentParser()
 # set up training configuration.
 parser.add_argument('--gpu', default='', type=str)
-parser.add_argument('--resume', default=r'ghostvlad/pretrained/weights.h5', type=str)
+parser.add_argument('--resume', default=r'ghostvlad/pre_trained/weights.h5', type=str)
 parser.add_argument('--data_path', default='4persons', type=str)
 # set up network configuration.
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
@@ -36,7 +36,7 @@ parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 
 global args
 args = parser.parse_args()
 
-SAVED_MODEL_NAME = 'pretrained/saved_model.uisrnn_benchmark'
+SAVED_MODEL_NAME = 'src/pre_trained/saved_model.uisrnn_benchmark'
 
 
 def append2dict(speakerSlice, spk_period):
@@ -209,4 +209,4 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
 
 if __name__ == '__main__':
-    main(r'wavs/cal.wav', embedding_per_second=1.2, overlap_rate=0.4)
+    main(r'src/wavs/ru/ru_sample_1.wav', embedding_per_second=1.2, overlap_rate=0.4)

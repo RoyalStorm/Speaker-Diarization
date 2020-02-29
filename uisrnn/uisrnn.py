@@ -27,7 +27,7 @@ _INITIAL_SIGMA2_VALUE = 0.1
 
 
 class CoreRNN(nn.Module):
-    """The core Recurent Neural Network used by UIS-RNN."""
+    """The core Recurrent Neural Network used by UIS-RNN."""
 
     def __init__(self, input_dim, hidden_size, depth, observation_dim, dropout=0):
         super(CoreRNN, self).__init__()
@@ -111,7 +111,7 @@ class UISRNN:
             We do not customize learning rate for separate parts.
 
         Returns:
-          a pytorch "optim" object
+          a PyTorch "optim" object
         """
         params = [
             {

@@ -17,7 +17,7 @@ import numpy as np
 
 import uisrnn
 
-SAVED_MODEL_NAME = 'pretrained/saved_model.uisrnn_benchmark'
+SAVED_MODEL_NAME = 'pre_trained/saved_model.uisrnn_benchmark'
 
 
 def diarization_experiment(model_args, training_args, inference_args):

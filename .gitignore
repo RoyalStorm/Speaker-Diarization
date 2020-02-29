@@ -8,3 +8,4 @@ dist/*
 uisrnn.egg-info/*
 .coverage
 .idea
+src/wavs/ru
