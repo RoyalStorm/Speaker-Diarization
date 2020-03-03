@@ -59,7 +59,7 @@ def parse_arguments():
         type=float,
         help='The value of p0, corresponding to Eq. (6) in the '
              'paper. If the value is given, we will fix to this value. If the '
-             'value is None, we will estimate it from training data '
+             'value is None, we will estimate it from training dataset '
              'using Eq. (13) in the paper.')
     model_parser.add_argument(
         '--crp_alpha',
@@ -75,7 +75,7 @@ def parse_arguments():
         type=float,
         help='The value of sigma squared, corresponding to Eq. (11) in the '
              'paper. If the value is given, we will fix to this value. If the '
-             'value is None, we will estimate it from training data.')
+             'value is None, we will estimate it from training dataset.')
     model_parser.add_argument(
         '--verbosity',
         default=2,
@@ -128,19 +128,19 @@ def parse_arguments():
         default=10,
         type=int,
         help='The number of permutations per utterance sampled in the training '
-             'data.')
+             'dataset.')
     training_parser.add_argument(
         '--sigma_alpha',
         default=1.0,
         type=float,
         help='The inverse gamma shape for estimating sigma2. This value is only '
-             'meaningful when sigma2 is not given, and estimated from data.')
+             'meaningful when sigma2 is not given, and estimated from dataset.')
     training_parser.add_argument(
         '--sigma_beta',
         default=1.0,
         type=float,
         help='The inverse gamma scale for estimating sigma2. This value is only '
-             'meaningful when sigma2 is not given, and estimated from data.')
+             'meaningful when sigma2 is not given, and estimated from dataset.')
     training_parser.add_argument(
         '--regularization_weight',
         '-r',

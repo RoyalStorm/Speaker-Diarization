@@ -11,19 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""A demo script showing how to use the uisrnn package on toy data."""
+import datetime
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 import uisrnn
 
-SAVED_MODEL_NAME = 'pre_trained/saved_model.uisrnn_benchmark'
+SAVED_MODEL_NAME = './src/last_model/ru_model_' + datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S') + '.uis-rnn'''
 
 
-def diarization_experiment(model_args, training_args, inference_args):
+def diarization_experiment(model_args, training_args):
     """Experiment pipeline.
 
-    Load data --> train model --> test model --> output result
+    Load dataset --> train model --> test model --> output result
 
     Args:
       model_args: model configurations
@@ -31,10 +32,7 @@ def diarization_experiment(model_args, training_args, inference_args):
       inference_args: inference configurations
     """
 
-    predicted_labels = []
-    test_record = []
-
-    train_data = np.load('./ghostvlad/training_data.npz')
+    train_data = np.load('./ghostvlad/training_data.npz', allow_pickle=True)
     train_sequence = train_data['train_sequence']
     train_cluster_id = train_data['train_cluster_id']
     train_sequence_list = [seq.astype(float) + 0.00001 for seq in train_sequence]
@@ -43,8 +41,21 @@ def diarization_experiment(model_args, training_args, inference_args):
     model = uisrnn.UISRNN(model_args)
 
     # training
-    model.fit(train_sequence_list, train_cluster_id_list, training_args)
+    train_loss = model.fit(train_sequence_list, train_cluster_id_list, training_args)
     model.save(SAVED_MODEL_NAME)
+
+    iterations = np.arange(0, training_args.train_iteration)
+
+    plt.style.use('ggplot')
+    plt.figure()
+
+    plt.plot(iterations, train_loss, label='train_loss')
+
+    plt.xlabel('Iteration')
+    plt.ylabel('Loss')
+    plt.title('Training loss')
+    plt.legend()
+    plt.show()
 
     '''
     # testing
@@ -71,18 +82,20 @@ def diarization_experiment(model_args, training_args, inference_args):
 
 def main():
     """The main function."""
-    model_args, training_args, inference_args = uisrnn.parse_arguments()
+    model_args, training_args, _ = uisrnn.parse_arguments()
     model_args.observation_dim = 512
     model_args.rnn_depth = 1
     model_args.rnn_hidden_size = 512
+
     training_args.enforce_cluster_id_uniqueness = False
-    training_args.batch_size = 30
+    training_args.batch_size = 20
     training_args.learning_rate = 1e-4
-    training_args.train_iteration = 3000
+    training_args.train_iteration = 30
     training_args.num_permutations = 20
     # training_args.grad_max_norm = 5.0
-    training_args.learning_rate_half_life = 1000
-    diarization_experiment(model_args, training_args, inference_args)
+    training_args.learning_rate_half_life = 100
+
+    diarization_experiment(model_args, training_args)
 
 
 if __name__ == '__main__':

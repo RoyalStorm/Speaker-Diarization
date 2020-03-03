@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-# ===========================================
-#        Parse the argument
-# ===========================================
 import argparse
 import os
 import random
@@ -16,7 +13,7 @@ parser = argparse.ArgumentParser()
 # set up training configuration.
 parser.add_argument('--gpu', default='', type=str)
 parser.add_argument('--resume', default=r'pre_trained/weights.h5', type=str)
-parser.add_argument('--data_path', default='4persons', type=str)
+parser.add_argument('--data_path', default='dataset/train', type=str)
 # set up network configuration.
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
 parser.add_argument('--ghost_cluster', default=2, type=int)
@@ -31,38 +28,47 @@ global args
 args = parser.parse_args()
 
 
-def similar(matrix):  # calc speaker-embeddings similarity in pretty format output.
+def similar(matrix):
+    """Calculate speaker-embeddings similarity in pretty format output.
+
+    Args: matrix:
+    """
     ids = matrix.shape[0]
+
     for i in range(ids):
         for j in range(ids):
-            dist = matrix[i, :] * matrix[j, :]
             dist = np.linalg.norm(matrix[i, :] - matrix[j, :])
+
             print('%.2f  ' % dist, end='')
+
             if (j + 1) % 3 == 0 and j != 0:
                 print("| ", end='')
+
         if (i + 1) % 3 == 0 and i != 0:
             print('\n')
-            print("*" * 80, end='')
-        print("\n")
+            print('*' * 80, end='')
+
+        print('\n')
 
 
-# ===============================================
-#       code from Arsha for loading data.
-# ===============================================
 def load_wav(vid_path, sr):
     wav, sr_ret = librosa.load(vid_path, sr=sr)
     assert sr_ret == sr
 
     intervals = librosa.effects.split(wav, top_db=20)
     wav_output = []
+
     for sliced in intervals:
         wav_output.extend(wav[sliced[0]:sliced[1]])
+
     wav_output = np.array(wav_output)
+
     return wav_output
 
 
-def lin_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
+def linear_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
     linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)  # linear spectrogram
+
     return linear.T
 
 
@@ -82,7 +88,7 @@ def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=5
         wavs = np.concatenate((wavs, wav))
         change_points.append(wavs.shape[0] // hop_length)  # change_point in spectrum
 
-    linear_spect = lin_spectogram_from_wav(wavs, hop_length, win_length, n_fft)
+    linear_spect = linear_spectogram_from_wav(wavs, hop_length, win_length, n_fft)
     mag, _ = librosa.magphase(linear_spect)  # magnitude
     mag_T = mag.T
     freq, time = mag_T.shape
@@ -114,42 +120,30 @@ def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=5
     return utterance_specs, utterance_speakers
 
 
-def prepare_data(SRC_PATH):
-    wavDir = os.listdir(SRC_PATH)
-    wavDir.sort()
+def prepare_data(dataset_path):
+    paths_list = []
+    speakers_labels_list = []
 
-    allpath_list = []
-    allspk_list = []
-    for i, spkDir in enumerate(wavDir):  # Each speaker's directory
-        spk = spkDir  # speaker name
-        wavPath = os.path.join(SRC_PATH, spkDir, 'audio')
-        for wav in os.listdir(wavPath):  # wavfile
-            utter_path = os.path.join(wavPath, wav)
-            allpath_list.append(utter_path)
-            allspk_list.append(i)
-        if (i > 100):
-            break
+    for i, speaker_dir in enumerate(os.listdir(dataset_path)):
+        wav_path = os.path.join(dataset_path, speaker_dir)
 
-    path_spk_list = list(zip(allpath_list, allspk_list))
+        for wav in os.listdir(wav_path):
+            utterance_path = os.path.join(wav_path, wav)
+            paths_list.append(utterance_path)
+            speakers_labels_list.append(i)
+
+    path_spk_list = list(zip(paths_list, speakers_labels_list))
+
     return path_spk_list
 
 
 def main():
-    # gpu configuration
+    # GPU config
     toolkits.initialize_GPU(args)
 
     import model
-    # ==================================
-    #       Get Train/Val.
-    # ==================================
 
-    total_list = [os.path.join(args.data_path, file) for file in os.listdir(args.data_path)]
-    unique_list = np.unique(total_list)
-
-    # ==================================
-    #       Get Model
-    # ==================================
-    # construct the data generator.
+    # Construct the dataset generator
     params = {'dim': (257, None, 1),
               'nfft': 512,
               'min_slice': 720,
@@ -162,29 +156,28 @@ def main():
 
     network_eval = model.vggvox_resnet2d_icassp(input_dim=params['dim'],
                                                 num_class=params['n_classes'],
-                                                mode='eval', args=args)
+                                                mode='eval',
+                                                args=args)
 
-    # ==> load pre-trained model ???
     if args.resume:
-        # ==> get real_model from arguments input,
-        # load the model if the imag_model == real_model.
         if os.path.isfile(args.resume):
             network_eval.load_weights(os.path.join(args.resume), by_name=True)
-            print('==> successfully loading model {}.'.format(args.resume))
+            print('Successfully loading model {}.'.format(args.resume))
         else:
-            raise IOError("==> no checkpoint found at '{}'".format(args.resume))
+            raise IOError("No checkpoint found at '{}'".format(args.resume))
     else:
-        raise IOError('==> please type in the model to load')
+        raise IOError('Please type in the model to load')
 
-    # The feature extraction process has to be done sample-by-sample,
-    # because each sample is of different lengths.
+    """The feature extraction process has to be done sample-by-sample,
+       because each sample is of different lengths.
+    """
 
-    SRC_PATH = r'/data/dataset/SpkWav120'
-    path_spk_tuples = prepare_data(SRC_PATH)
+    dataset_path = r'./dataset'
+    path_spk_tuples = prepare_data(dataset_path)
     train_sequence = []
     train_cluster_id = []
 
-    for epoch in range(7000):  # Random choice utterances from whole wavfiles
+    for epoch in range(250):  # Random choice utterances from whole wav files
         # A merged utterance contains [10,20] utterances
         splits_count = np.random.randint(10, 20, 1)
         path_spks = random.sample(path_spk_tuples, splits_count[0])
@@ -198,7 +191,8 @@ def main():
         feats = np.array(feats)[:, 0, :]  # [splits, embedding dim]
         train_sequence.append(feats)
         train_cluster_id.append(utterance_speakers)
-        print("epoch:{}, utterance length: {}, speakers: {}".format(epoch, len(utterance_speakers), len(path_spks)))
+
+        print('Epoch:{}, utterance length: {}, speakers: {}'.format(epoch, len(utterance_speakers), len(path_spks)))
 
     np.savez('training_data', train_sequence=train_sequence, train_cluster_id=train_cluster_id)
 

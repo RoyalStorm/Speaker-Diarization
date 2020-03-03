@@ -46,7 +46,7 @@ def similar(matrix):  # calc speaker-embeddings similarity in pretty format outp
 
 
 # ===============================================
-#       code from Arsha for loading data.
+#       code from Arsha for loading dataset.
 # ===============================================
 def load_wav(vid_path, sr):
     wav, sr_ret = librosa.load(vid_path, sr=sr)
@@ -115,7 +115,7 @@ def main():
     # ==================================
     #       Get Model
     # ==================================
-    # construct the data generator.
+    # construct the dataset generator.
     params = {'dim': (257, None, 1),
               'nfft': 512,
               'min_slice': 720,
@@ -149,7 +149,7 @@ def main():
 
     train_cluster_id = []
     train_sequence = []
-    SRC_PATH = r'/data/dataset/SpkWav120'
+    SRC_PATH = r'dataset/dataset/SpkWav120'
 
     wavDir = os.listdir(SRC_PATH)
     wavDir.sort()

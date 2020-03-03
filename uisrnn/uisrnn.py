@@ -313,9 +313,9 @@ class UISRNN:
                     num_iter == args.train_iteration - 1):
                 self.logger.print(
                     2,
-                    'Iter: {:d}  \t'
-                    'Training Loss: {:.4f}    \n'
-                    '    Negative Log Likelihood: {:.4f}\t'
+                    'Iteration: {:d}  \t'
+                    'Training loss: {:.4f}    \n'
+                    '    Negative log likelihood: {:.4f}\t'
                     'Sigma2 Prior: {:.4f}\t'
                     'Regularization: {:.4f}'.format(
                         num_iter,

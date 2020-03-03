@@ -17,7 +17,7 @@ import torch
 
 
 def weighted_mse_loss(input_tensor, target_tensor, weight=1):
-    """Compute weighted MSE loss.
+    """Compute weighted MSE loss. Среднеквадратичная ошибка
 
     Note that we are doing weighted loss that only sum up over non-zero entries.
 

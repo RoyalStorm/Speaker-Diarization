@@ -37,21 +37,23 @@ global args
 args = parser.parse_args()
 
 SAVED_MODEL_NAME = 'src/pre_trained/saved_model.uisrnn_benchmark'
+RU_MODEL_NAME = 'src/last_model/ru_model.uis-rnn'
 
 
-def append2dict(speakerSlice, spk_period):
+def append2dict(speaker_slice, spk_period):
     key = list(spk_period.keys())[0]
     value = list(spk_period.values())[0]
     time_dict = {'start': int(value[0] + 0.5), 'stop': int(value[1] + 0.5)}
-    if key in speakerSlice:
-        speakerSlice[key].append(time_dict)
+    if key in speaker_slice:
+        speaker_slice[key].append(time_dict)
     else:
-        speakerSlice[key] = [time_dict]
+        speaker_slice[key] = [time_dict]
 
-    return speakerSlice
+    return speaker_slice
 
 
-def arrange_result(labels, time_spec_rate):  # {'1': [{'start':10, 'stop':20}, {'start':30, 'stop':40}], '2': [{'start':90, # 'stop':100}]}
+def arrange_result(labels, time_spec_rate):  # {'1': [{'start':10, 'stop':20}, {'start':30, 'stop':40}],
+                                             #  '2': [{'start':90, # 'stop':100}]}
     last_label = labels[0]
     speaker_slice = {}
     j = 0
@@ -109,8 +111,8 @@ def lin_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
 #                               |-------------------|
 def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, embedding_per_second=0.5, overlap_rate=0.5):
     wav, intervals = load_wav(path, sr=sr)
-    linear_spectpgram = lin_spectogram_from_wav(wav, hop_length, win_length, n_fft)
-    mag, _ = librosa.magphase(linear_spectpgram)  # magnitude
+    linear_spectogram = lin_spectogram_from_wav(wav, hop_length, win_length, n_fft)
+    mag, _ = librosa.magphase(linear_spectogram)  # magnitude
     mag_T = mag.T
     freq, time = mag_T.shape
     spec_mag = mag_T
@@ -159,7 +161,7 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
     model_args, _, inference_args = uisrnn.parse_arguments()
     model_args.observation_dim = 512
     uisrnn_model = uisrnn.UISRNN(model_args)
-    uisrnn_model.load(SAVED_MODEL_NAME)
+    uisrnn_model.load(RU_MODEL_NAME)
 
     specs, intervals = load_data(wav_path, embedding_per_second=embedding_per_second, overlap_rate=overlap_rate)
     map_table, keys = gen_map(intervals)
@@ -178,17 +180,17 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
     speaker_slice = arrange_result(predicted_label, time_spec_rate)
 
     for spk, timeDicts in speaker_slice.items():  # time map to origin wav (contains mute)
-        for tid, timeDict in enumerate(timeDicts):
+        for tid, time_dict in enumerate(timeDicts):
             s = 0
             e = 0
             for i, key in enumerate(keys):
                 if s != 0 and e != 0:
                     break
-                if s == 0 and key > timeDict['start']:
-                    offset = timeDict['start'] - keys[i - 1]
+                if s == 0 and key > time_dict['start']:
+                    offset = time_dict['start'] - keys[i - 1]
                     s = map_table[keys[i - 1]] + offset
-                if e == 0 and key > timeDict['stop']:
-                    offset = timeDict['stop'] - keys[i - 1]
+                if e == 0 and key > time_dict['stop']:
+                    offset = time_dict['stop'] - keys[i - 1]
                     e = map_table[keys[i - 1]] + offset
 
             speaker_slice[spk][tid]['start'] = s
@@ -196,9 +198,9 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
     for spk, timeDicts in speaker_slice.items():
         print('========= ' + str(spk) + ' =========')
-        for timeDict in timeDicts:
-            s = timeDict['start']
-            e = timeDict['stop']
+        for time_dict in timeDicts:
+            s = time_dict['start']
+            e = time_dict['stop']
             s = fmt_time(s)  # change point moves to the center of the slice
             e = fmt_time(e)
             print(s + ' ==> ' + e)
@@ -209,4 +211,4 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
 
 if __name__ == '__main__':
-    main(r'src/wavs/ru/ru_sample_1.wav', embedding_per_second=1.2, overlap_rate=0.4)
+    main(r'src/wavs/ru/ru_test.wav', embedding_per_second=0.5, overlap_rate=0.4)

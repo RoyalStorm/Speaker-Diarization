@@ -62,7 +62,7 @@ class TestIntegration(unittest.TestCase):
             'D': np.array([1.0, 1.0]),
         }
 
-        # generate training data
+        # generate training dataset
         train_cluster_id = ['A'] * 400 + ['B'] * 300 + ['C'] * 200 + ['D'] * 100
         random.shuffle(train_cluster_id)
         train_sequence = _generate_random_sequence(
@@ -80,7 +80,7 @@ class TestIntegration(unittest.TestCase):
             train_cluster_id[600:]
         ]
 
-        # generate testing data
+        # generate testing dataset
         test_cluster_id = ['A'] * 10 + ['B'] * 20 + ['C'] * 30 + ['D'] * 40
         random.shuffle(test_cluster_id)
         test_sequence = _generate_random_sequence(
@@ -133,7 +133,7 @@ class TestIntegration(unittest.TestCase):
             predicted_label, test_cluster_id)
         self.assertEqual(1.0, accuracy)
 
-        # keep training from loaded model on a subset of training data
+        # keep training from loaded model on a subset of training dataset
         transition_bias_1 = model.transition_bias
         training_args.learning_rate = 0.001
         training_args.train_iteration = 50

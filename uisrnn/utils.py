@@ -80,7 +80,7 @@ def enforce_cluster_id_uniqueness(cluster_ids):
 
 def concatenate_training_data(train_sequences, train_cluster_ids,
                               enforce_uniqueness=True, shuffle=True):
-    """Concatenate training data.
+    """Concatenate training dataset.
 
     Args:
       train_sequences: a list of 2-dim numpy arrays to be concatenated

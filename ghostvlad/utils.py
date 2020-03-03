@@ -4,7 +4,7 @@ import numpy as np
 
 
 # ===============================================
-#       code from Arsha for loading data.
+#       code from Arsha for loading dataset.
 # ===============================================
 def load_wav(vid_path, sr, mode='train'):
     wav, sr_ret = librosa.load(vid_path, sr=sr)

@@ -64,13 +64,13 @@ def get_vggface2_imglist(args):
         return imglist, labellist
 
     print('==> calculating image lists...')
-    # Prepare training data.
+    # Prepare training dataset.
     imgs_list_trn, lbs_list_trn = get_datalist(args.trn_meta)
     imgs_list_trn = [os.path.join(args.data_path, i) for i in imgs_list_trn]
     imgs_list_trn = np.array(imgs_list_trn)
     lbs_list_trn = np.array(lbs_list_trn)
 
-    # Prepare validation data.
+    # Prepare validation dataset.
     imgs_list_val, lbs_list_val = get_datalist(args.val_meta)
     imgs_list_val = [os.path.join(args.data_path, i) for i in imgs_list_val]
     imgs_list_val = np.array(imgs_list_val)

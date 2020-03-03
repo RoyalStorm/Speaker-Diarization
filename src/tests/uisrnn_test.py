@@ -24,9 +24,9 @@ class TestUISRNN(unittest.TestCase):
     """Test the UISRNN class."""
 
     def test_fit_concatenated_and_predict_single_label(self):
-        """Train and test model while training data has single label.
+        """Train and test model while training dataset has single label.
 
-        Training data have already been concatenated.
+        Training dataset have already been concatenated.
         """
         model_args, training_args, inference_args = uisrnn.parse_arguments()
         model_args.rnn_depth = 1
@@ -36,7 +36,7 @@ class TestUISRNN(unittest.TestCase):
         training_args.train_iteration = 50
         inference_args.test_iteration = 1
 
-        # generate fake training data, assume already concatenated
+        # generate fake training dataset, assume already concatenated
         train_sequence = np.random.rand(1000, model_args.observation_dim)
         train_cluster_id = np.array(['A'] * 1000)
 
@@ -45,7 +45,7 @@ class TestUISRNN(unittest.TestCase):
         # training
         model.fit(train_sequence, train_cluster_id, training_args)
 
-        # testing, where data has less variation than training
+        # testing, where dataset has less variation than training
         test_sequence = np.random.rand(10, model_args.observation_dim) / 10.0
         predicted_label = model.predict(test_sequence, inference_args)
         self.assertListEqual([0] * 10, predicted_label)
@@ -61,9 +61,9 @@ class TestUISRNN(unittest.TestCase):
         self.assertListEqual([0] * 10, predicted_cluster_ids[1])
 
     def test_fit_list_and_predict_single_label(self):
-        """Train and test model while training data has single label.
+        """Train and test model while training dataset has single label.
 
-        Training data are not concatenated.
+        Training dataset are not concatenated.
         """
         model_args, training_args, inference_args = uisrnn.parse_arguments()
         model_args.rnn_depth = 1
@@ -73,7 +73,7 @@ class TestUISRNN(unittest.TestCase):
         training_args.train_iteration = 50
         inference_args.test_iteration = 1
 
-        # generate fake training data, as a list
+        # generate fake training dataset, as a list
         train_sequences = [
             np.random.rand(100, model_args.observation_dim),
             np.random.rand(200, model_args.observation_dim),
@@ -88,13 +88,13 @@ class TestUISRNN(unittest.TestCase):
         # training
         model.fit(train_sequences, train_cluster_ids, training_args)
 
-        # testing, where data has less variation than training
+        # testing, where dataset has less variation than training
         test_sequence = np.random.rand(10, model_args.observation_dim) / 10.0
         predicted_label = model.predict(test_sequence, inference_args)
         self.assertListEqual([0] * 10, predicted_label)
 
     def test_fit_with_wrong_dim(self):
-        """Training data has wrong dimension."""
+        """Training dataset has wrong dimension."""
         model_args, training_args, _ = uisrnn.parse_arguments()
         model_args.rnn_depth = 1
         model_args.rnn_hidden_size = 8
@@ -102,7 +102,7 @@ class TestUISRNN(unittest.TestCase):
         training_args.learning_rate = 0.01
         training_args.train_iteration = 5
 
-        # generate fake data
+        # generate fake dataset
         train_sequence = np.random.rand(1000, 18)
         train_cluster_id = np.array(['A'] * 1000)
 
@@ -113,7 +113,7 @@ class TestUISRNN(unittest.TestCase):
             model.fit(train_sequence, train_cluster_id, training_args)
 
     def test_predict_with_wrong_dim(self):
-        """Testing data has wrong dimension."""
+        """Testing dataset has wrong dimension."""
         model_args, training_args, inference_args = uisrnn.parse_arguments()
         model_args.rnn_depth = 1
         model_args.rnn_hidden_size = 8
@@ -121,7 +121,7 @@ class TestUISRNN(unittest.TestCase):
         training_args.learning_rate = 0.01
         training_args.train_iteration = 50
 
-        # generate fake data
+        # generate fake dataset
         train_sequence = np.random.rand(1000, model_args.observation_dim)
         train_cluster_id = np.array(['A'] * 1000)
 
