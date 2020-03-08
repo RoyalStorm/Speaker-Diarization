@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', default='', type=str)
 parser.add_argument('--resume', default=r'pre_trained/weights.h5', type=str)
 parser.add_argument('--data_path', default='D://dataset', type=str)
-parser.add_argument('--epochs', default=250, type=int)
+parser.add_argument('--epochs', default=5, type=int)
 
 # Set up network configuration.
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)

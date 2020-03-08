@@ -5,14 +5,15 @@ import sys
 
 import librosa
 import numpy as np
+
+sys.path.append('ghostvlad')
+sys.path.append('src/visualization')
+
 import model
 from viewer import PlotDiar
 
 import uisrnn
 from ghostvlad import toolkits
-
-sys.path.append('ghostvlad')
-sys.path.append('src/visualization')
 
 parser = argparse.ArgumentParser()
 
@@ -33,8 +34,8 @@ parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 
 
 # Set up other configuration
 parser.add_argument('--audio', default='src/wavs/ru/ru_test.wav', type=str)
-parser.add_argument('embedding_per_second', default=1.2, type=float)
-parser.add_argument('overlap_rate', default=0.4, type=float)
+parser.add_argument('--embedding_per_second', default=1.2, type=float)
+parser.add_argument('--overlap_rate', default=0.4, type=float)
 
 args = parser.parse_args()
 
