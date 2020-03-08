@@ -4,8 +4,8 @@ import argparse
 import sys
 
 import librosa
-import model as spkModel
 import numpy as np
+import model
 from viewer import PlotDiar
 
 import uisrnn
@@ -15,21 +15,27 @@ sys.path.append('ghostvlad')
 sys.path.append('src/visualization')
 
 parser = argparse.ArgumentParser()
-# set up training configuration.
+
+# Set up training configuration
 parser.add_argument('--gpu', default='', type=str)
 parser.add_argument('--resume', default=r'ghostvlad/pre_trained/weights.h5', type=str)
-parser.add_argument('--data_path', default='4persons', type=str)
-# set up network configuration.
+
+# Set up network configuration
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
 parser.add_argument('--ghost_cluster', default=2, type=int)
 parser.add_argument('--vlad_cluster', default=8, type=int)
 parser.add_argument('--bottleneck_dim', default=512, type=int)
 parser.add_argument('--aggregation_mode', default='gvlad', choices=['avg', 'vlad', 'gvlad'], type=str)
-# set up learning rate, training loss and optimizer.
+
+# Set up learning rate, training loss and optimizer
 parser.add_argument('--loss', default='softmax', choices=['softmax', 'amsoftmax'], type=str)
 parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 'extend'], type=str)
 
-global args
+# Set up other configuration
+parser.add_argument('--audio', default='src/wavs/ru/ru_test.wav', type=str)
+parser.add_argument('embedding_per_second', default=1.2, type=float)
+parser.add_argument('overlap_rate', default=0.4, type=float)
+
 args = parser.parse_args()
 
 SAVED_MODEL_NAME = 'src/pre_trained/saved_model.uisrnn_benchmark'
@@ -49,7 +55,7 @@ def append2dict(speaker_slice, spk_period):
 
 
 def arrange_result(labels, time_spec_rate):  # {'1': [{'start':10, 'stop':20}, {'start':30, 'stop':40}],
-                                             #  '2': [{'start':90, # 'stop':100}]}
+    #  '2': [{'start':90, # 'stop':100}]}
     last_label = labels[0]
     speaker_slice = {}
     j = 0
@@ -149,9 +155,9 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
               'normalize': True
               }
 
-    network_eval = spkModel.vggvox_resnet2d_icassp(input_dim=params['dim'],
-                                                   num_class=params['n_classes'],
-                                                   mode='eval', args=args)
+    network_eval = model.vggvox_resnet2d_icassp(input_dim=params['dim'],
+                                                num_class=params['n_classes'],
+                                                mode='eval', args=args)
     network_eval.load_weights(args.resume, by_name=True)
 
     model_args, _, inference_args = uisrnn.parse_arguments()
@@ -207,4 +213,4 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
 
 if __name__ == '__main__':
-    main(r'src/wavs/ru/ru_test.wav', embedding_per_second=1.2, overlap_rate=0.4)
+    main(args.audio, embedding_per_second=args.embedding_per_second, overlap_rate=args.overlap_rate)

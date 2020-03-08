@@ -15,7 +15,8 @@ parser = argparse.ArgumentParser()
 # Set up training configuration.
 parser.add_argument('--gpu', default='', type=str)
 parser.add_argument('--resume', default=r'pre_trained/weights.h5', type=str)
-parser.add_argument('--data_path', default='dataset/train', type=str)
+parser.add_argument('--data_path', default='D://dataset', type=str)
+parser.add_argument('--epochs', default=250, type=int)
 
 # Set up network configuration.
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
@@ -28,7 +29,6 @@ parser.add_argument('--aggregation_mode', default='gvlad', choices=['avg', 'vlad
 parser.add_argument('--loss', default='softmax', choices=['softmax', 'amsoftmax'], type=str)
 parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 'extend'], type=str)
 
-global args
 args = parser.parse_args()
 
 
@@ -76,7 +76,8 @@ def linear_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
     return linear.T
 
 
-def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=512, min_win_time=240, max_win_time=1600):
+def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=512, min_win_time=240,
+              max_win_time=1600):
     win_time = np.random.randint(min_win_time, max_win_time, 1)[0]  # win_length in [240,1600] ms
     win_spec = win_time // (1000 // (sr // hop_length))  # win_length in spectrum
     hop_spec = win_spec // 2
@@ -152,7 +153,7 @@ def main():
               'hop_length': 160,
               'n_classes': 5994,
               'sampling_rate': 16000,
-              'normalize': True,
+              'normalize': True
               }
 
     network_eval = model.vggvox_resnet2d_icassp(input_dim=params['dim'],
@@ -173,16 +174,16 @@ def main():
        because each sample is of different lengths.
     """
 
-    dataset_path = r'./dataset'
-    path_spk_tuples = prepare_data(dataset_path)
+    path_spk_tuples = prepare_data(args.data_path)
     train_sequence = []
     train_cluster_id = []
 
-    for epoch in range(250):  # Random choice utterances from whole wav files
+    for epoch in range(args.epochs):  # Random choice utterances from whole wav files
         # A merged utterance contains [10,20] utterances
         splits_count = np.random.randint(10, 20, 1)[0]
         path_spks = random.sample(path_spk_tuples, splits_count)
         utterance_specs, utterance_speakers = load_data(path_spks, min_win_time=500, max_win_time=1600)
+
         feats = []
         for spec in utterance_specs:
             spec = np.expand_dims(np.expand_dims(spec, 0), -1)
