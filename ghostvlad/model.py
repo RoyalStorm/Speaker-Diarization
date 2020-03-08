@@ -16,9 +16,9 @@ class ModelMGPU(keras.Model):
         self._smodel = ser_model
 
     def __getattribute__(self, attrname):
-        '''Override load and save methods to be used from the serial-model. The
+        """Override load and save methods to be used from the serial-model. The
         serial-model holds references to the weights in the multi-gpu model.
-        '''
+        """
         # return Model.__getattribute__(self, attrname)
         if 'load' in attrname or 'save' in attrname:
             return getattr(self._smodel, attrname)
@@ -27,9 +27,9 @@ class ModelMGPU(keras.Model):
 
 
 class VladPooling(keras.engine.Layer):
-    '''
+    """
     This layer follows the NetVlad, GhostVlad
-    '''
+    """
 
     def __init__(self, mode, k_centers, g_centers=0, **kwargs):
         self.k_centers = k_centers

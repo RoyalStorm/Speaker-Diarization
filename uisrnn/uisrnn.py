@@ -41,10 +41,12 @@ class CoreRNN(nn.Module):
 
     def forward(self, input_seq, hidden=None):
         output_seq, hidden = self.gru(input_seq, hidden)
+
         if isinstance(output_seq, torch.nn.utils.rnn.PackedSequence):
             output_seq, _ = torch.nn.utils.rnn.pad_packed_sequence(
                 output_seq, batch_first=False)
         mean = self.linear_mean2(F.relu(self.linear_mean1(output_seq)))
+
         return mean, hidden
 
 
@@ -204,25 +206,32 @@ class UISRNN:
           TypeError: If train_sequence or train_cluster_id is of wrong type.
           ValueError: If train_sequence or train_cluster_id has wrong dimension.
         """
-        # check type
+
+        # Check type
         if (not isinstance(train_sequence, np.ndarray) or
                 train_sequence.dtype != float):
             raise TypeError('train_sequence should be a numpy array of float type.')
+
         if isinstance(train_cluster_id, list):
             train_cluster_id = np.array(train_cluster_id)
+
         if (not isinstance(train_cluster_id, np.ndarray) or
                 not train_cluster_id.dtype.name.startswith('str')):
             raise TypeError('train_cluster_id type be a numpy array of strings.')
-        # check dimension
+
+        # Check dimension
         if train_sequence.ndim != 2:
             raise ValueError('train_sequence must be 2-dim array.')
+
         if train_cluster_id.ndim != 1:
             raise ValueError('train_cluster_id must be 1-dim array.')
-        # check length and size
+
+        # Check length and size
         train_total_length, observation_dim = train_sequence.shape
         if observation_dim != self.observation_dim:
             raise ValueError('train_sequence does not match the dimension specified '
                              'by args.observation_dim.')
+
         if train_total_length != len(train_cluster_id):
             raise ValueError('train_sequence length is not equal to '
                              'train_cluster_id length.')
@@ -231,13 +240,11 @@ class UISRNN:
         optimizer = self._get_optimizer(optimizer=args.optimizer,
                                         learning_rate=args.learning_rate)
 
-        (sub_sequences,
-         seq_lengths,
-         transition_bias,
-         transition_bias_denominator) = utils.resize_sequence(
+        (sub_sequences, seq_lengths, transition_bias, transition_bias_denominator) = utils.resize_sequence(
             sequence=train_sequence,
             cluster_id=train_cluster_id,
             num_permutations=args.num_permutations)
+
         if self.estimate_transition_bias:
             if self.transition_bias is None:
                 self.transition_bias = transition_bias
@@ -257,7 +264,15 @@ class UISRNN:
                 args.batch_size,
                 self.observation_dim,
                 self.device)
-        train_loss = []
+
+        history = {
+            'iteration': [],
+            'train_loss': [],
+            'negative_log_likelihood': [],
+            'sigma2_prior': [],
+            'regularization': []
+        }
+
         for num_iter in range(args.train_iteration):
             # Update learning rate if half life is specified.
             if args.learning_rate_half_life > 0:
@@ -265,7 +280,9 @@ class UISRNN:
                     optimizer.param_groups[0]['lr'] /= 2.0
                     self.logger.print(2, 'Changing learning rate to: {}'.format(
                         optimizer.param_groups[0]['lr']))
+
             optimizer.zero_grad()
+
             # For online learning, pack a subset in each iteration.
             if args.batch_size is not None:
                 packed_train_sequence, rnn_truth = utils.pack_sequence(
@@ -276,7 +293,8 @@ class UISRNN:
                     self.device)
             hidden = self.rnn_init_hidden.repeat(1, args.batch_size, 1)
             mean, _ = self.rnn_model(packed_train_sequence, hidden)
-            # use mean to predict
+
+            # Use mean to predict
             mean = torch.cumsum(mean, dim=0)
             mean_size = mean.size()
             mean = torch.mm(
@@ -285,7 +303,7 @@ class UISRNN:
                 mean.view(mean_size[0], -1))
             mean = mean.view(mean_size)
 
-            # Likelihood part.
+            # Likelihood part
             loss1 = loss_func.weighted_mse_loss(
                 input_tensor=(rnn_truth != 0).float() * mean[:-1, :, :],
                 target_tensor=rnn_truth,
@@ -298,7 +316,7 @@ class UISRNN:
             loss2 = loss_func.sigma2_prior_loss(
                 num_non_zero, args.sigma_alpha, args.sigma_beta, self.sigma2)
 
-            # Regularization part.
+            # Regularization part
             loss3 = loss_func.regularization_loss(
                 self.rnn_model.parameters(), args.regularization_weight)
 
@@ -306,7 +324,10 @@ class UISRNN:
             loss.backward()
             nn.utils.clip_grad_norm_(self.rnn_model.parameters(), args.grad_max_norm)
             optimizer.step()
-            # avoid numerical issues
+
+            tmp = loss1.values()
+
+            # Avoid numerical issues
             self.sigma2.data.clamp_(min=1e-6)
 
             if (np.remainder(num_iter, 10) == 0 or
@@ -323,9 +344,17 @@ class UISRNN:
                         float(loss1.data),
                         float(loss2.data),
                         float(loss3.data)))
-            train_loss.append(float(loss1.data))  # only save the likelihood part
+
+            history['iteration'].append(num_iter)
+            history['train_loss'].append(float(loss.data))
+            history['negative_log_likelihood'].append(float(loss1.data))
+            history['sigma2_prior'].append(float(loss2.data))
+            history['regularization'].append(float(loss3.data))
+
         self.logger.print(
             1, 'Done training with {} iterations'.format(args.train_iteration))
+
+        return history
 
     def fit(self, train_sequences, train_cluster_ids, args):
         """Fit UISRNN model.
@@ -369,7 +398,7 @@ class UISRNN:
         else:
             raise TypeError('train_sequences must be a list or numpy.ndarray')
 
-        self.fit_concatenated(
+        return self.fit_concatenated(
             concatenated_train_sequence, concatenated_train_cluster_id, args)
 
     def _update_beam_state(self, beam_state, look_ahead_seq, cluster_seq):

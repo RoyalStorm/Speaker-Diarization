@@ -18,10 +18,10 @@ import numpy as np
 
 import uisrnn
 
-SAVED_MODEL_NAME = './src/last_model/ru_model_' + datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S') + '.uis-rnn'''
+SAVED_MODEL_NAME = './src/last_model/ru_model_' + datetime.datetime.now().strftime('%Y%m%dT%H%M') + '.uis-rnn'''
 
 
-def diarization_experiment(model_args, training_args):
+def diarization_experiment(model_args, training_args, inference_args):
     """Experiment pipeline.
 
     Load dataset --> train model --> test model --> output result
@@ -40,21 +40,32 @@ def diarization_experiment(model_args, training_args):
 
     model = uisrnn.UISRNN(model_args)
 
-    # training
-    train_loss = model.fit(train_sequence_list, train_cluster_id_list, training_args)
-    model.save(SAVED_MODEL_NAME)
-
+    # Training
+    history = model.fit(train_sequence_list, train_cluster_id_list, training_args)
     iterations = np.arange(0, training_args.train_iteration)
 
+    model.save(SAVED_MODEL_NAME)
+    with open('history.txt', 'w') as f:
+        f.write(str(history))
+
     plt.style.use('ggplot')
+
     plt.figure()
-
-    plt.plot(iterations, train_loss, label='train_loss')
-
+    plt.plot(iterations, history['train_loss'], label='train_loss')
+    plt.plot(iterations, history['sigma2_prior'], label='sigma2_prior')
     plt.xlabel('Iteration')
     plt.ylabel('Loss')
-    plt.title('Training loss')
+    plt.title('Train loss/sigma2 prior')
     plt.legend()
+
+    plt.figure()
+    plt.plot(iterations, history['negative_log_likelihood'], label='negative_log_likelihood')
+    plt.plot(iterations, history['regularization'], label='regularization')
+    plt.xlabel('Iteration')
+    plt.ylabel('Loss')
+    plt.title('Negative log likelihood/regularization')
+    plt.legend()
+
     plt.show()
 
     '''
@@ -82,7 +93,13 @@ def diarization_experiment(model_args, training_args):
 
 def main():
     """The main function."""
-    model_args, training_args, _ = uisrnn.parse_arguments()
+    """with open('loss.txt', 'r') as f:
+        for line in f:
+            for i, el in enumerate(line.split()):
+                print(i, el)
+    """
+
+    model_args, training_args, inference_args = uisrnn.parse_arguments()
     model_args.observation_dim = 512
     model_args.rnn_depth = 1
     model_args.rnn_hidden_size = 512
@@ -90,12 +107,12 @@ def main():
     training_args.enforce_cluster_id_uniqueness = False
     training_args.batch_size = 20
     training_args.learning_rate = 1e-4
-    training_args.train_iteration = 30
+    training_args.train_iteration = 1000
     training_args.num_permutations = 20
     # training_args.grad_max_norm = 5.0
-    training_args.learning_rate_half_life = 100
+    training_args.learning_rate_half_life = 250
 
-    diarization_experiment(model_args, training_args)
+    diarization_experiment(model_args, training_args, inference_args)
 
 
 if __name__ == '__main__':

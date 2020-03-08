@@ -5,22 +5,26 @@ import argparse
 import os
 import random
 
-import librosa
+import librosa as lr
 import numpy as np
 import toolkits
+import model
 
 parser = argparse.ArgumentParser()
-# set up training configuration.
+
+# Set up training configuration.
 parser.add_argument('--gpu', default='', type=str)
 parser.add_argument('--resume', default=r'pre_trained/weights.h5', type=str)
 parser.add_argument('--data_path', default='dataset/train', type=str)
-# set up network configuration.
+
+# Set up network configuration.
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
 parser.add_argument('--ghost_cluster', default=2, type=int)
 parser.add_argument('--vlad_cluster', default=8, type=int)
 parser.add_argument('--bottleneck_dim', default=512, type=int)
 parser.add_argument('--aggregation_mode', default='gvlad', choices=['avg', 'vlad', 'gvlad'], type=str)
-# set up learning rate, training loss and optimizer.
+
+# Set up learning rate, training loss and optimizer.
 parser.add_argument('--loss', default='softmax', choices=['softmax', 'amsoftmax'], type=str)
 parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 'extend'], type=str)
 
@@ -52,10 +56,10 @@ def similar(matrix):
 
 
 def load_wav(vid_path, sr):
-    wav, sr_ret = librosa.load(vid_path, sr=sr)
+    wav, sr_ret = lr.load(vid_path, sr=sr)
     assert sr_ret == sr
 
-    intervals = librosa.effects.split(wav, top_db=20)
+    intervals = lr.effects.split(wav, top_db=20)
     wav_output = []
 
     for sliced in intervals:
@@ -67,13 +71,12 @@ def load_wav(vid_path, sr):
 
 
 def linear_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
-    linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)  # linear spectrogram
+    linear = lr.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)  # linear spectrogram
 
     return linear.T
 
 
-def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=512, min_win_time=240,
-              max_win_time=1600):
+def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=512, min_win_time=240, max_win_time=1600):
     win_time = np.random.randint(min_win_time, max_win_time, 1)[0]  # win_length in [240,1600] ms
     win_spec = win_time // (1000 // (sr // hop_length))  # win_length in spectrum
     hop_spec = win_spec // 2
@@ -89,7 +92,7 @@ def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=5
         change_points.append(wavs.shape[0] // hop_length)  # change_point in spectrum
 
     linear_spect = linear_spectogram_from_wav(wavs, hop_length, win_length, n_fft)
-    mag, _ = librosa.magphase(linear_spect)  # magnitude
+    mag, _ = lr.magphase(linear_spect)  # magnitude
     mag_T = mag.T
     freq, time = mag_T.shape
     spec_mag = mag_T
@@ -141,8 +144,6 @@ def main():
     # GPU config
     toolkits.initialize_GPU(args)
 
-    import model
-
     # Construct the dataset generator
     params = {'dim': (257, None, 1),
               'nfft': 512,
@@ -179,8 +180,8 @@ def main():
 
     for epoch in range(250):  # Random choice utterances from whole wav files
         # A merged utterance contains [10,20] utterances
-        splits_count = np.random.randint(10, 20, 1)
-        path_spks = random.sample(path_spk_tuples, splits_count[0])
+        splits_count = np.random.randint(10, 20, 1)[0]
+        path_spks = random.sample(path_spk_tuples, splits_count)
         utterance_specs, utterance_speakers = load_data(path_spks, min_win_time=500, max_win_time=1600)
         feats = []
         for spec in utterance_specs:

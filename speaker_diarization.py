@@ -1,22 +1,18 @@
 """A demo script showing how to DIARIZATION ON WAV USING UIS-RNN."""
 
+import argparse
 import sys
 
 import librosa
+import model as spkModel
 import numpy as np
+from viewer import PlotDiar
 
 import uisrnn
 from ghostvlad import toolkits
 
 sys.path.append('ghostvlad')
 sys.path.append('src/visualization')
-import model as spkModel
-from viewer import PlotDiar
-
-# ===========================================
-#        Parse the argument
-# ===========================================
-import argparse
 
 parser = argparse.ArgumentParser()
 # set up training configuration.
@@ -211,4 +207,4 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
 
 if __name__ == '__main__':
-    main(r'src/wavs/ru/ru_test.wav', embedding_per_second=0.5, overlap_rate=0.4)
+    main(r'src/wavs/ru/ru_test.wav', embedding_per_second=1.2, overlap_rate=0.4)
