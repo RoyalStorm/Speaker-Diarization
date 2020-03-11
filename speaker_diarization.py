@@ -4,16 +4,18 @@ import argparse
 import sys
 
 import librosa
+import matplotlib.pyplot as plt
 import numpy as np
+
+import uisrnn
 
 sys.path.append('ghostvlad')
 sys.path.append('src/visualization')
 
 import model
+import toolkits
+import utils
 from viewer import PlotDiar
-
-import uisrnn
-from ghostvlad import toolkits
 
 parser = argparse.ArgumentParser()
 
@@ -34,13 +36,13 @@ parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 
 
 # Set up other configuration
 parser.add_argument('--audio', default='src/wavs/ru/ru_test.wav', type=str)
-parser.add_argument('--embedding_per_second', default=1.2, type=float)
+parser.add_argument('--embedding_per_second', default=0.4, type=float)
 parser.add_argument('--overlap_rate', default=0.4, type=float)
 
 args = parser.parse_args()
 
 SAVED_MODEL_NAME = 'src/pre_trained/saved_model.uisrnn_benchmark'
-RU_MODEL_NAME = 'src/last_model/ru_model.uis-rnn'
+RU_MODEL_NAME = 'src/last_model/ru_model_20200309T2107.uis-rnn'
 
 
 def append2dict(speaker_slice, spk_period):
@@ -67,6 +69,7 @@ def arrange_result(labels, time_spec_rate):  # {'1': [{'start':10, 'stop':20}, {
         j = i
         last_label = label
     speaker_slice = append2dict(speaker_slice, {last_label: (time_spec_rate * j, time_spec_rate * (len(labels)))})
+
     return speaker_slice
 
 
@@ -74,6 +77,7 @@ def gen_map(intervals):  # interval slices to map table
     slice_len = [sliced[1] - sliced[0] for sliced in intervals.tolist()]
     map_table = {}  # vad erased time to origin time, only split points
     idx = 0
+
     for i, sliced in enumerate(intervals.tolist()):
         map_table[idx] = sliced[0]
         idx += slice_len[i]
@@ -81,6 +85,7 @@ def gen_map(intervals):  # interval slices to map table
 
     keys = [k for k, _ in map_table.items()]
     keys.sort()
+
     return map_table, keys
 
 
@@ -89,21 +94,29 @@ def fmt_time(time_in_milliseconds):
     minute = time_in_milliseconds // 1000 // 60
     second = (time_in_milliseconds - minute * 60 * 1000) // 1000
     time = '{}:{:02d}.{}'.format(minute, second, millisecond)
+
     return time
 
 
 def load_wav(vid_path, sr):
-    wav, _ = librosa.load(vid_path, sr=sr)
+    wav, sr = librosa.load(vid_path, sr=sr)
     intervals = librosa.effects.split(wav, top_db=20)
     wav_output = []
+
+    time = np.arange(0, len(wav)) / sr
+
+    plt.style.use('ggplot')
+    plt.figure()
+    plt.plot(time, wav)
+    plt.xlabel('Time (s)')
+    plt.ylabel('Amplitude')
+    plt.show()
+
     for sliced in intervals:
+        # Append sliced part from sliced[0] to sliced[1], 13312 to 23552
         wav_output.extend(wav[sliced[0]:sliced[1]])
+
     return np.array(wav_output), (intervals / sr * 1000).astype(int)
-
-
-def lin_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
-    linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)  # linear spectrogram
-    return linear.T
 
 
 # 0s        1s        2s                  4s                  6s
@@ -114,11 +127,10 @@ def lin_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
 #                               |-------------------|
 def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, embedding_per_second=0.5, overlap_rate=0.5):
     wav, intervals = load_wav(path, sr=sr)
-    linear_spectogram = lin_spectogram_from_wav(wav, hop_length, win_length, n_fft)
+    linear_spectogram = utils.linear_spectogram_from_wav(wav, hop_length, win_length, n_fft)
     mag, _ = librosa.magphase(linear_spectogram)  # magnitude
     mag_T = mag.T
     freq, time = mag_T.shape
-    spec_mag = mag_T
 
     spec_len = sr / hop_length / embedding_per_second
     spec_hop_len = spec_len * (1 - overlap_rate)
@@ -143,7 +155,7 @@ def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, embeddi
 
 
 def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
-    # gpu configuration
+    # GPU configuration
     toolkits.initialize_GPU(args)
 
     params = {'dim': (257, None, 1),
@@ -199,7 +211,6 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
             speaker_slice[spk][tid]['start'] = s
             speaker_slice[spk][tid]['stop'] = e
 
-    for spk, timeDicts in speaker_slice.items():
         print('========= ' + str(spk) + ' =========')
         for time_dict in timeDicts:
             s = time_dict['start']

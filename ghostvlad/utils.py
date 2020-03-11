@@ -19,14 +19,15 @@ def load_wav(vid_path, sr, mode='train'):
         return extended_wav
 
 
-def lin_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
+def linear_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
     linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)  # linear spectrogram
+
     return linear.T
 
 
 def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, spec_len=250, mode='train'):
     wav = load_wav(path, sr=sr, mode=mode)
-    linear_spect = lin_spectogram_from_wav(wav, hop_length, win_length, n_fft)
+    linear_spect = linear_spectogram_from_wav(wav, hop_length, win_length, n_fft)
     mag, _ = librosa.magphase(linear_spect)  # magnitude
     mag_T = mag.T
     freq, time = mag_T.shape

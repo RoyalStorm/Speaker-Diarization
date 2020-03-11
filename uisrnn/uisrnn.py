@@ -325,8 +325,6 @@ class UISRNN:
             nn.utils.clip_grad_norm_(self.rnn_model.parameters(), args.grad_max_norm)
             optimizer.step()
 
-            tmp = loss1.values()
-
             # Avoid numerical issues
             self.sigma2.data.clamp_(min=1e-6)
 

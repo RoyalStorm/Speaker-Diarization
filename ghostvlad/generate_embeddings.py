@@ -15,8 +15,8 @@ parser = argparse.ArgumentParser()
 # Set up training configuration.
 parser.add_argument('--gpu', default='', type=str)
 parser.add_argument('--resume', default=r'pre_trained/weights.h5', type=str)
-parser.add_argument('--data_path', default='D://dataset', type=str)
-parser.add_argument('--epochs', default=5, type=int)
+parser.add_argument('--data_path', default='dataset/train', type=str)
+parser.add_argument('--epochs', default=350, type=int)
 
 # Set up network configuration.
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
@@ -78,6 +78,7 @@ def linear_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
 
 def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=512, min_win_time=240,
               max_win_time=1600):
+    # win = window
     win_time = np.random.randint(min_win_time, max_win_time, 1)[0]  # win_length in [240,1600] ms
     win_spec = win_time // (1000 // (sr // hop_length))  # win_length in spectrum
     hop_spec = win_spec // 2
@@ -196,7 +197,7 @@ def main():
 
         print('Epoch:{}, utterance length: {}, speakers: {}'.format(epoch, len(utterance_speakers), len(path_spks)))
 
-    np.savez('training_data', train_sequence=train_sequence, train_cluster_id=train_cluster_id)
+    np.savez('data/training_data', train_sequence=train_sequence, train_cluster_id=train_cluster_id)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ import numpy as np
 
 import uisrnn
 
-SAVED_MODEL_NAME = './src/last_model/ru_model_' + datetime.datetime.now().strftime('%Y%m%dT%H%M') + '.uis-rnn'''
+SAVED_MODEL_NAME = './src/ru_model_' + datetime.datetime.now().strftime('%Y%m%dT%H%M') + '.uis-rnn'''
 
 
 def diarization_experiment(model_args, training_args, inference_args):
@@ -32,7 +32,7 @@ def diarization_experiment(model_args, training_args, inference_args):
       inference_args: inference configurations
     """
 
-    train_data = np.load('./ghostvlad/training_data.npz', allow_pickle=True)
+    train_data = np.load('ghostvlad/data/training_data.npz', allow_pickle=True)
     train_sequence = train_data['train_sequence']
     train_cluster_id = train_data['train_cluster_id']
     train_sequence_list = [seq.astype(float) + 0.00001 for seq in train_sequence]
@@ -93,12 +93,6 @@ def diarization_experiment(model_args, training_args, inference_args):
 
 def main():
     """The main function."""
-    """with open('loss.txt', 'r') as f:
-        for line in f:
-            for i, el in enumerate(line.split()):
-                print(i, el)
-    """
-
     model_args, training_args, inference_args = uisrnn.parse_arguments()
     model_args.observation_dim = 512
     model_args.rnn_depth = 1
