@@ -9,6 +9,7 @@ import librosa as lr
 import numpy as np
 import toolkits
 import model
+import utils
 
 parser = argparse.ArgumentParser()
 
@@ -70,12 +71,6 @@ def load_wav(vid_path, sr):
     return wav_output
 
 
-def linear_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
-    linear = lr.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)  # linear spectrogram
-
-    return linear.T
-
-
 def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=512, min_win_time=240,
               max_win_time=1600):
     # win = window
@@ -93,7 +88,7 @@ def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=5
         wavs = np.concatenate((wavs, wav))
         change_points.append(wavs.shape[0] // hop_length)  # change_point in spectrum
 
-    linear_spect = linear_spectogram_from_wav(wavs, hop_length, win_length, n_fft)
+    linear_spect = utils.linear_spectogram_from_wav(wavs, hop_length, win_length, n_fft)
     mag, _ = lr.magphase(linear_spect)  # magnitude
     mag_T = mag.T
     freq, time = mag_T.shape
@@ -129,38 +124,40 @@ def prepare_data(dataset_path):
     paths_list = []
     speakers_labels_list = []
 
-    for i, speaker_dir in enumerate(os.listdir(dataset_path)):
+    # ('dataset/train\\spk_1\\common_voice_ru_18849004.wav', 0)
+
+    for speaker_dir in os.listdir(dataset_path):
         wav_path = os.path.join(dataset_path, speaker_dir)
+        label = speaker_dir.split('_')[1]
 
         for wav in os.listdir(wav_path):
             utterance_path = os.path.join(wav_path, wav)
             paths_list.append(utterance_path)
-            speakers_labels_list.append(i)
+            speakers_labels_list.append(label)
 
     path_spk_list = list(zip(paths_list, speakers_labels_list))
 
     return path_spk_list
 
 
-def main():
+def generate_embeddings():
     # GPU config
     toolkits.initialize_GPU(args)
 
     # Construct the dataset generator
-    params = {'dim': (257, None, 1),
-              'nfft': 512,
-              'min_slice': 720,
-              'win_length': 400,
-              'hop_length': 160,
-              'n_classes': 5994,
-              'sampling_rate': 16000,
-              'normalize': True
-              }
+    params = {
+        'dim': (257, None, 1),
+        'nfft': 512,
+        'min_slice': 720,
+        'win_length': 400,
+        'hop_length': 160,
+        'n_classes': 5994,
+        'sampling_rate': 16000,
+        'normalize': True
+    }
 
-    network_eval = model.vggvox_resnet2d_icassp(input_dim=params['dim'],
-                                                num_class=params['n_classes'],
-                                                mode='eval',
-                                                args=args)
+    network_eval = model.vggvox_resnet2d_icassp(input_dim=params['dim'], num_class=params['n_classes'],
+                                                mode='eval', args=args)
 
     if args.resume:
         if os.path.isfile(args.resume):
@@ -179,7 +176,8 @@ def main():
     train_sequence = []
     train_cluster_id = []
 
-    for epoch in range(args.epochs):  # Random choice utterances from whole wav files
+    # Random choice utterances from whole wav files
+    for epoch in range(args.epochs):
         # A merged utterance contains [10,20] utterances
         splits_count = np.random.randint(10, 20, 1)[0]
         path_spks = random.sample(path_spk_tuples, splits_count)
@@ -201,4 +199,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    generate_embeddings()
