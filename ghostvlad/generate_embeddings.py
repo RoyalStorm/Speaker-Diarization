@@ -57,8 +57,7 @@ def similar(matrix):
 
 
 def load_wav(vid_path, sr):
-    wav, sr_ret = lr.load(vid_path, sr=sr)
-    assert sr_ret == sr
+    wav, _ = lr.load(vid_path, sr=sr)
 
     intervals = lr.effects.split(wav, top_db=20)
     wav_output = []
@@ -66,40 +65,35 @@ def load_wav(vid_path, sr):
     for sliced in intervals:
         wav_output.extend(wav[sliced[0]:sliced[1]])
 
-    wav_output = np.array(wav_output)
-
-    return wav_output
+    return np.array(wav_output)
 
 
-def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=512, min_win_time=240,
-              max_win_time=1600):
-    # win = window
+def load_data(selected_wavs, win_length=400, sr=16000, hop_length=160, n_fft=512, min_win_time=240, max_win_time=1600):
     win_time = np.random.randint(min_win_time, max_win_time, 1)[0]  # win_length in [240,1600] ms
     win_spec = win_time // (1000 // (sr // hop_length))  # win_length in spectrum
     hop_spec = win_spec // 2
 
     wavs = np.array([])
     change_points = []
-    paths = list(zip(*path_spk_tuples))[0]
-    speakers = list(zip(*path_spk_tuples))[1]
+    paths = list(zip(*selected_wavs))[0]
+    speakers = list(zip(*selected_wavs))[1]
 
     for path in paths:
         wav = load_wav(path, sr=sr)  # VAD
         wavs = np.concatenate((wavs, wav))
-        change_points.append(wavs.shape[0] // hop_length)  # change_point in spectrum
+        change_points.append(wavs.shape[0] // hop_length)  # Change_point in spectrum
 
-    linear_spect = utils.linear_spectogram_from_wav(wavs, hop_length, win_length, n_fft)
-    mag, _ = lr.magphase(linear_spect)  # magnitude
+    linear_spectogram = utils.linear_spectogram_from_wav(wavs, hop_length, win_length, n_fft)
+    mag, _ = lr.magphase(linear_spectogram)  # Magnitude
     mag_T = mag.T
     freq, time = mag_T.shape
-    spec_mag = mag_T
 
     utterance_specs = []
     utterance_speakers = []
-
     cur_spec = 0
     cur_speaker = speakers[0]
     i = 0
+
     while True:
         if cur_spec + win_spec > time:
             break
@@ -109,7 +103,7 @@ def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=5
             i += 1
             cur_speaker = speakers[i]
 
-        # preprocessing, subtract mean, divided by time-wise var
+        # Preprocessing, subtract mean, divided by time-wise var
         mu = np.mean(spec_mag, 0, keepdims=True)
         std = np.std(spec_mag, 0, keepdims=True)
         spec_mag = (spec_mag - mu) / (std + 1e-5)
@@ -120,11 +114,13 @@ def load_data(path_spk_tuples, win_length=400, sr=16000, hop_length=160, n_fft=5
     return utterance_specs, utterance_speakers
 
 
-def prepare_data(dataset_path):
+def load_dialogues(wav, win_length=400, sr=16000, hop_length=160, n_fft=512, min_win_time=240, max_win_time=1600):
+    pass
+
+
+def prepare_dataset(dataset_path):
     paths_list = []
     speakers_labels_list = []
-
-    # ('dataset/train\\spk_1\\common_voice_ru_18849004.wav', 0)
 
     for speaker_dir in os.listdir(dataset_path):
         wav_path = os.path.join(dataset_path, speaker_dir)
@@ -145,7 +141,7 @@ def generate_embeddings():
     toolkits.initialize_GPU(args)
 
     # Construct the dataset generator
-    params = {
+    vgg_params = {
         'dim': (257, None, 1),
         'nfft': 512,
         'min_slice': 720,
@@ -156,7 +152,7 @@ def generate_embeddings():
         'normalize': True
     }
 
-    network_eval = model.vggvox_resnet2d_icassp(input_dim=params['dim'], num_class=params['n_classes'],
+    network_eval = model.vggvox_resnet2d_icassp(input_dim=vgg_params['dim'], num_class=vgg_params['n_classes'],
                                                 mode='eval', args=args)
 
     if args.resume:
@@ -172,16 +168,16 @@ def generate_embeddings():
        because each sample is of different lengths.
     """
 
-    path_spk_tuples = prepare_data(args.data_path)
+    path_speaker_label_tuples = prepare_dataset(args.data_path)
     train_sequence = []
     train_cluster_id = []
 
     # Random choice utterances from whole wav files
     for epoch in range(args.epochs):
         # A merged utterance contains [10,20] utterances
-        splits_count = np.random.randint(10, 20, 1)[0]
-        path_spks = random.sample(path_spk_tuples, splits_count)
-        utterance_specs, utterance_speakers = load_data(path_spks, min_win_time=500, max_win_time=1600)
+        speakers_number = np.random.randint(10, 20, 1)[0]
+        selected_speakers = random.sample(path_speaker_label_tuples, speakers_number)
+        utterance_specs, utterance_speakers = load_data(selected_speakers, min_win_time=400, max_win_time=1600)
 
         feats = []
         for spec in utterance_specs:
@@ -193,7 +189,7 @@ def generate_embeddings():
         train_sequence.append(feats)
         train_cluster_id.append(utterance_speakers)
 
-        print('Epoch:{}, utterance length: {}, speakers: {}'.format(epoch, len(utterance_speakers), len(path_spks)))
+        print('Epoch:{}, utterance length: {}, speakers: {}'.format(epoch, len(utterance_speakers), len(selected_speakers)))
 
     np.savez('data/training_data', train_sequence=train_sequence, train_cluster_id=train_cluster_id)
 
