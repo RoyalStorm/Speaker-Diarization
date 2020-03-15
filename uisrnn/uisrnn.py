@@ -266,7 +266,6 @@ class UISRNN:
                 self.device)
 
         history = {
-            'iteration': [],
             'train_loss': [],
             'negative_log_likelihood': [],
             'sigma2_prior': [],
@@ -343,7 +342,6 @@ class UISRNN:
                         float(loss2.data),
                         float(loss3.data)))
 
-            history['iteration'].append(num_iter)
             history['train_loss'].append(float(loss.data))
             history['negative_log_likelihood'].append(float(loss1.data))
             history['sigma2_prior'].append(float(loss2.data))

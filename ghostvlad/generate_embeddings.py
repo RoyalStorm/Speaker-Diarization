@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser()
 # Set up training configuration.
 parser.add_argument('--gpu', default='', type=str)
 parser.add_argument('--resume', default=r'pre_trained/weights.h5', type=str)
-parser.add_argument('--data_path', default='dataset/train', type=str)
+parser.add_argument('--data_path', default='D;/dataset/train', type=str)
 parser.add_argument('--epochs', default=350, type=int)
 
 # Set up network configuration.
