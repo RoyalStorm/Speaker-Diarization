@@ -9,7 +9,7 @@ uisrnn.egg-info/*
 .coverage
 .idea
 src/wavs/ru
-ghostvlad/data/training_data.npz
+ghostvlad/data
 ghostvlad/dataset
 src/last_model
 history.txt

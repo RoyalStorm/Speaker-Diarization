@@ -16,8 +16,8 @@ parser = argparse.ArgumentParser()
 # Set up training configuration.
 parser.add_argument('--gpu', default='', type=str)
 parser.add_argument('--resume', default=r'pre_trained/weights.h5', type=str)
-parser.add_argument('--data_path', default='D;/dataset/train', type=str)
-parser.add_argument('--epochs', default=350, type=int)
+parser.add_argument('--data_path', default='D:/dataset/train', type=str)
+parser.add_argument('--epochs', default=150, type=int)
 
 # Set up network configuration.
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
@@ -29,6 +29,7 @@ parser.add_argument('--aggregation_mode', default='gvlad', choices=['avg', 'vlad
 # Set up learning rate, training loss and optimizer.
 parser.add_argument('--loss', default='softmax', choices=['softmax', 'amsoftmax'], type=str)
 parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 'extend'], type=str)
+parser.add_argument('--mode', default='test', choices=['train', 'test'], type=str)
 
 args = parser.parse_args()
 
@@ -114,26 +115,23 @@ def load_data(selected_wavs, win_length=400, sr=16000, hop_length=160, n_fft=512
     return utterance_specs, utterance_speakers
 
 
-def load_dialogues(wav, win_length=400, sr=16000, hop_length=160, n_fft=512, min_win_time=240, max_win_time=1600):
-    pass
-
-
 def prepare_dataset(dataset_path):
     paths_list = []
     speakers_labels_list = []
 
-    for speaker_dir in os.listdir(dataset_path):
-        wav_path = os.path.join(dataset_path, speaker_dir)
-        label = speaker_dir.split('_')[1]
+    for dataset_dir in os.listdir(dataset_path):
+        speakers_dir = os.path.join(dataset_path, dataset_dir)
 
-        for wav in os.listdir(wav_path):
-            utterance_path = os.path.join(wav_path, wav)
-            paths_list.append(utterance_path)
-            speakers_labels_list.append(label)
+        for speaker_dir in os.listdir(speakers_dir):
+            wav_path = os.path.join(speakers_dir, speaker_dir)
+            label = dataset_dir + '_' + str(speaker_dir.split('_')[1])
 
-    path_spk_list = list(zip(paths_list, speakers_labels_list))
+            for wav in os.listdir(wav_path):
+                utterance_path = os.path.join(wav_path, wav)
+                paths_list.append(utterance_path)
+                speakers_labels_list.append(label)
 
-    return path_spk_list
+    return list(zip(paths_list, speakers_labels_list))
 
 
 def generate_embeddings():
@@ -189,9 +187,15 @@ def generate_embeddings():
         train_sequence.append(feats)
         train_cluster_id.append(utterance_speakers)
 
-        print('Epoch:{}, utterance length: {}, speakers: {}'.format(epoch, len(utterance_speakers), len(selected_speakers)))
+        print('Epoch:{}, utterance length: {}, speakers: {}'
+              .format(epoch, len(utterance_speakers), len(selected_speakers)))
 
-    np.savez('data/training_data', train_sequence=train_sequence, train_cluster_id=train_cluster_id)
+    if args.mode == 'train':
+        npz_name = 'training_data'
+    else:
+        npz_name = 'testing_data'
+
+    np.savez('data/' + npz_name, train_sequence=train_sequence, train_cluster_id=train_cluster_id)
 
 
 if __name__ == "__main__":
