@@ -18,7 +18,7 @@ import numpy as np
 
 import uisrnn
 
-SAVED_MODEL_NAME = './src/ru_model_' + datetime.datetime.now().strftime('%Y%m%dT%H%M') + '.uis-rnn'''
+MODEL_NAME = './src/ru_model_' + datetime.datetime.now().strftime('%Y%m%dT%H%M') + '.uis-rnn'''
 
 
 def diarization_experiment(model_args, training_args, inference_args):
@@ -56,7 +56,7 @@ def diarization_experiment(model_args, training_args, inference_args):
     history = model.fit(train_sequences, train_cluster_ids, training_args)
     iterations = np.arange(0, training_args.train_iteration)
 
-    model.save(SAVED_MODEL_NAME)
+    model.save(MODEL_NAME)
     with open('history.txt', 'w') as f:
         f.write(str(history))
 
@@ -83,22 +83,24 @@ def diarization_experiment(model_args, training_args, inference_args):
     # Testing.
     # You can also try uisrnn.parallel_predict to speed up with GPU.
     # But that is a beta feature which is not thoroughly tested, so proceed with caution.
-    # model.load(SAVED_MODEL_NAME)
+    """model.load('./src/last_model/ru_model_20200309T2107.uis-rnn')
 
-    """predicted_cluster_ids = []
+    predicted_cluster_ids = []
     test_record = []
 
     for (test_sequence, test_cluster_id) in zip(test_sequences, test_cluster_ids):
         predicted_cluster_id = model.predict(test_sequence, inference_args)
         predicted_cluster_ids.append(predicted_cluster_id)
-        accuracy = uisrnn.compute_sequence_match_accuracy(
-            test_cluster_id, predicted_cluster_id)
+
+        accuracy = uisrnn.compute_sequence_match_accuracy(list(test_cluster_id), list(predicted_cluster_id))
         test_record.append((accuracy, len(test_cluster_id)))
 
         print('Ground truth labels:')
         print(test_cluster_id)
+        print('Ground truth labels len: ', len(test_cluster_id))
         print('Predicted labels:')
         print(predicted_cluster_id)
+        print('Predicted labels len: ', len(predicted_cluster_id))
         print('-' * 80)
 
     output_string = uisrnn.output_result(model_args, training_args, test_record)

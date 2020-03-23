@@ -1,7 +1,6 @@
 *~
 *.pyc
 .DS_Store
-*result.txt
 *.uisrnn
 build/*
 dist/*

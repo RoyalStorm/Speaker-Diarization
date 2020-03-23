@@ -6,9 +6,9 @@ import os
 import random
 
 import librosa as lr
+import model
 import numpy as np
 import toolkits
-import model
 import utils
 
 parser = argparse.ArgumentParser()
@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', default='', type=str)
 parser.add_argument('--resume', default=r'pre_trained/weights.h5', type=str)
 parser.add_argument('--data_path', default='D:/dataset/train', type=str)
-parser.add_argument('--epochs', default=150, type=int)
+parser.add_argument('--epochs', default=50, type=int)
 
 # Set up network configuration.
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
@@ -60,7 +60,7 @@ def similar(matrix):
 def load_wav(vid_path, sr):
     wav, _ = lr.load(vid_path, sr=sr)
 
-    intervals = lr.effects.split(wav, top_db=20)
+    intervals = lr.effects.split(wav, top_db=20)  # VAD
     wav_output = []
 
     for sliced in intervals:
@@ -175,7 +175,7 @@ def generate_embeddings():
         # A merged utterance contains [10,20] utterances
         speakers_number = np.random.randint(10, 20, 1)[0]
         selected_speakers = random.sample(path_speaker_label_tuples, speakers_number)
-        utterance_specs, utterance_speakers = load_data(selected_speakers, min_win_time=400, max_win_time=1600)
+        utterance_specs, utterance_speakers = load_data(selected_speakers, min_win_time=400, max_win_time=1200)
 
         feats = []
         for spec in utterance_specs:
