@@ -34,7 +34,7 @@ parser.add_argument('--loss', default='softmax', choices=['softmax', 'amsoftmax'
 parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 'extend'], type=str)
 
 # Set up other configuration
-parser.add_argument('--audio', default='src/wavs/ru/ru_test.wav', type=str)
+parser.add_argument('--audio', default='src/wavs/ru/2/ru_test_rtk2.wav', type=str)
 parser.add_argument('--embedding_per_second', default=0.8, type=float)
 parser.add_argument('--overlap_rate', default=0.4, type=float)
 

@@ -10,6 +10,7 @@ import model
 import numpy as np
 import toolkits
 import utils
+from scipy.spatial.distance import squareform, pdist
 
 parser = argparse.ArgumentParser()
 
@@ -70,7 +71,7 @@ def load_wav(vid_path, sr):
 
 
 def load_data(selected_wavs, win_length=400, sr=16000, hop_length=160, n_fft=512, min_win_time=240, max_win_time=1600):
-    win_time = np.random.randint(min_win_time, max_win_time, 1)[0]  # win_length in [240,1600] ms
+    win_time = np.random.randint(min_win_time, max_win_time, 1)[0]  # win_length in [240, 1600] ms
     win_spec = win_time // (1000 // (sr // hop_length))  # win_length in spectrum
     hop_spec = win_spec // 2
 
@@ -80,7 +81,7 @@ def load_data(selected_wavs, win_length=400, sr=16000, hop_length=160, n_fft=512
     speakers = list(zip(*selected_wavs))[1]
 
     for path in paths:
-        wav = load_wav(path, sr=sr)  # VAD
+        wav = load_wav(path, sr=sr)
         wavs = np.concatenate((wavs, wav))
         change_points.append(wavs.shape[0] // hop_length)  # Change_point in spectrum
 
@@ -173,7 +174,7 @@ def generate_embeddings():
     # Random choice utterances from whole wav files
     for epoch in range(args.epochs):
         # A merged utterance contains [10,20] utterances
-        speakers_number = np.random.randint(10, 20, 1)[0]
+        speakers_number = 10  # np.random.randint(10, 20, 1)[0]
         selected_speakers = random.sample(path_speaker_label_tuples, speakers_number)
         utterance_specs, utterance_speakers = load_data(selected_speakers, min_win_time=400, max_win_time=1200)
 
@@ -184,6 +185,14 @@ def generate_embeddings():
             feats += [v]
 
         feats = np.array(feats)[:, 0, :]  # [splits, embedding dim]
+        for i in range(len(feats)):
+            for j in range(i, len(feats)):
+                print('Distance {:.4f} | {} and {}'.format(
+                    utils.distance(feats[i], feats[j]),
+                    utterance_speakers[i],
+                    utterance_speakers[j]
+                ))
+
         train_sequence.append(feats)
         train_cluster_id.append(utterance_speakers)
 
@@ -200,3 +209,9 @@ def generate_embeddings():
 
 if __name__ == "__main__":
     generate_embeddings()
+    """print('Similarity {:.4f}, Distance {:.4f} | {} and {}'.format(
+        np.mean(utils.similarity(feats[i].reshape(1, -1), feats[j].reshape(1, -1))),
+        np.mean(utils.distance(feats[i].reshape(1, -1), feats[j].reshape(1, -1))),
+        utterance_speakers[i],
+        utterance_speakers[j]
+    ))"""

@@ -1,3 +1,6 @@
+pyaudio
+plotly
+scikit-learn
 tensorflow
 keras
 matplotlib

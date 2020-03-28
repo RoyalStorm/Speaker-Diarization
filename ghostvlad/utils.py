@@ -1,6 +1,7 @@
 # Third Party
 import librosa
 import numpy as np
+from scipy.spatial.distance import cosine
 
 
 # ===============================================
@@ -13,9 +14,11 @@ def load_wav(vid_path, sr, mode='train'):
         extended_wav = np.append(wav, wav)
         if np.random.random() < 0.3:
             extended_wav = extended_wav[::-1]
+
         return extended_wav
     else:
         extended_wav = np.append(wav, wav[::-1])
+
         return extended_wav
 
 
@@ -39,4 +42,9 @@ def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, spec_le
     # preprocessing, subtract mean, divided by time-wise var
     mu = np.mean(spec_mag, 0, keepdims=True)
     std = np.std(spec_mag, 0, keepdims=True)
+
     return (spec_mag - mu) / (std + 1e-5)
+
+
+def distance(u, v):  # less is better
+    return cosine(u, v)
