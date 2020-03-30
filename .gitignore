@@ -9,6 +9,6 @@ uisrnn.egg-info/*
 .idea
 src/wavs/ru
 ghostvlad/data
-ghostvlad/dataset
+ghostvlad/projections
 src/last_model
 history.txt

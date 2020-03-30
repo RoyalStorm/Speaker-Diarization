@@ -4,13 +4,20 @@ from __future__ import print_function
 import argparse
 import os
 import random
+import warnings
+
+warnings.filterwarnings(action='ignore')
+
+import tensorflow as tf
+from tensorflow.contrib.tensorboard.plugins import projector
+
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 import librosa as lr
 import model
 import numpy as np
 import toolkits
 import utils
-from scipy.spatial.distance import squareform, pdist
 
 parser = argparse.ArgumentParser()
 
@@ -18,7 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', default='', type=str)
 parser.add_argument('--resume', default=r'pre_trained/weights.h5', type=str)
 parser.add_argument('--data_path', default='D:/dataset/train', type=str)
-parser.add_argument('--epochs', default=50, type=int)
+parser.add_argument('--epochs', default=1, type=int)
 
 # Set up network configuration.
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
@@ -135,6 +142,25 @@ def prepare_dataset(dataset_path):
     return list(zip(paths_list, speakers_labels_list))
 
 
+def visualize(feats):
+    sess = tf.InteractiveSession()
+
+    with tf.device("/cpu:0"):
+        embedding = tf.Variable(feats, trainable=False, name='embedding')
+        tf.global_variables_initializer().run()
+        saver = tf.train.Saver()
+        writer = tf.summary.FileWriter('projections', sess.graph)
+
+        config = projector.ProjectorConfig()
+        embed = config.embeddings.add()
+        embed.tensor_name = 'embedding'
+        embed.metadata_path = 'metadata.tsv'
+
+        projector.visualize_embeddings(writer, config)
+
+        saver.save(sess, 'projections/model.ckpt', global_step=feats.shape[0] - 1)
+
+
 def generate_embeddings():
     # GPU config
     toolkits.initialize_GPU(args)
@@ -196,6 +222,12 @@ def generate_embeddings():
         train_sequence.append(feats)
         train_cluster_id.append(utterance_speakers)
 
+        """with open('./projections/metadata.tsv', 'w+') as metadata:
+            for i, label in enumerate(utterance_speakers):
+                metadata.write('%s\n' % label)
+
+        visualize(feats)"""
+
         print('Epoch:{}, utterance length: {}, speakers: {}'
               .format(epoch, len(utterance_speakers), len(selected_speakers)))
 
@@ -209,9 +241,4 @@ def generate_embeddings():
 
 if __name__ == "__main__":
     generate_embeddings()
-    """print('Similarity {:.4f}, Distance {:.4f} | {} and {}'.format(
-        np.mean(utils.similarity(feats[i].reshape(1, -1), feats[j].reshape(1, -1))),
-        np.mean(utils.distance(feats[i].reshape(1, -1), feats[j].reshape(1, -1))),
-        utterance_speakers[i],
-        utterance_speakers[j]
-    ))"""
+    # tensorboard --logdir="projections" --port=8080
