@@ -68,3 +68,14 @@ The result is showing as below (for 3 speakers):
 The final result is influenced by the size of each window and the overlap rate.
 When the overlap is too large, the uis-rnn perhaps generates fewer speakers since the speaker embeddings changed smoothly, otherwise will generate more speakers.
 And also, the window size cannot be too short, it must contain enough information to generate more discrimitive speaker embeddings.
+
+
+## Embeddings
+I used TensorBoard for visualizing embeddings. For example, I generated one wav from 10 different speakers.
+
+<div align="center">
+    <img src="assets/tensorboard.png">
+</div>
+
+Go to `ghostvlad/generate_embeddings.py` and call "visualize()" method before print epoch number. 
+After this run `tensorboard --logdir="projections" --port=8080`

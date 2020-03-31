@@ -142,7 +142,11 @@ def prepare_dataset(dataset_path):
     return list(zip(paths_list, speakers_labels_list))
 
 
-def visualize(feats):
+def visualize(feats, speaker_labels):
+    with open('./projections/metadata.tsv', 'w+') as metadata:
+        for i, label in enumerate(speaker_labels):
+            metadata.write('%s\n' % label)
+
     sess = tf.InteractiveSession()
 
     with tf.device("/cpu:0"):
@@ -200,7 +204,7 @@ def generate_embeddings():
     # Random choice utterances from whole wav files
     for epoch in range(args.epochs):
         # A merged utterance contains [10,20] utterances
-        speakers_number = 10  # np.random.randint(10, 20, 1)[0]
+        speakers_number = np.random.randint(10, 20, 1)[0]
         selected_speakers = random.sample(path_speaker_label_tuples, speakers_number)
         utterance_specs, utterance_speakers = load_data(selected_speakers, min_win_time=400, max_win_time=1200)
 
@@ -211,22 +215,11 @@ def generate_embeddings():
             feats += [v]
 
         feats = np.array(feats)[:, 0, :]  # [splits, embedding dim]
-        for i in range(len(feats)):
-            for j in range(i, len(feats)):
-                print('Distance {:.4f} | {} and {}'.format(
-                    utils.distance(feats[i], feats[j]),
-                    utterance_speakers[i],
-                    utterance_speakers[j]
-                ))
 
         train_sequence.append(feats)
         train_cluster_id.append(utterance_speakers)
 
-        """with open('./projections/metadata.tsv', 'w+') as metadata:
-            for i, label in enumerate(utterance_speakers):
-                metadata.write('%s\n' % label)
-
-        visualize(feats)"""
+        # visualize(feats, utterance_speakers)
 
         print('Epoch:{}, utterance length: {}, speakers: {}'
               .format(epoch, len(utterance_speakers), len(selected_speakers)))

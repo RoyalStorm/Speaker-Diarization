@@ -35,7 +35,7 @@ parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 
 
 # Set up other configuration
 parser.add_argument('--audio', default='src/wavs/ru/2/ru_test_rtk2.wav', type=str)
-parser.add_argument('--embedding_per_second', default=0.8, type=float)
+parser.add_argument('--embedding_per_second', default=1.2, type=float)
 parser.add_argument('--overlap_rate', default=0.4, type=float)
 
 args = parser.parse_args()
@@ -228,3 +228,12 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
 if __name__ == '__main__':
     main(args.audio, embedding_per_second=args.embedding_per_second, overlap_rate=args.overlap_rate)
+    """
+            for i in range(len(feats)):
+            for j in range(i, len(feats)):
+                print('Distance {:.4f} | {} and {}'.format(
+                    utils.distance(feats[i], feats[j]),
+                    utterance_speakers[i],
+                    utterance_speakers[j]
+                ))
+    """
