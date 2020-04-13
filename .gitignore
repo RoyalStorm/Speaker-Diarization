@@ -1,10 +1,14 @@
 *~
 *.pyc
 .DS_Store
-*result.txt
 *.uisrnn
 build/*
 dist/*
 uisrnn.egg-info/*
 .coverage
 .idea
+src/wavs/ru
+ghostvlad/data
+ghostvlad/projections
+src/last_model
+history.txt

@@ -11,19 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""A demo script showing how to use the uisrnn package on toy data."""
+import datetime
 
 import numpy as np
+import plotly.graph_objects as go
 
 import uisrnn
 
-SAVED_MODEL_NAME = 'pretrained/saved_model.uisrnn_benchmark'
+MODEL_NAME = './src/ru_model_' + datetime.datetime.now().strftime('%Y%m%dT%H%M') + '.uis-rnn'''
 
 
 def diarization_experiment(model_args, training_args, inference_args):
     """Experiment pipeline.
 
-    Load data --> train model --> test model --> output result
+    Load dataset --> train model --> test model --> output result
 
     Args:
       model_args: model configurations
@@ -31,59 +32,107 @@ def diarization_experiment(model_args, training_args, inference_args):
       inference_args: inference configurations
     """
 
-    predicted_labels = []
-    test_record = []
+    # Train data
+    train_data = np.load('./ghostvlad/data/training_data.npz', allow_pickle=True)
 
-    train_data = np.load('./ghostvlad/training_data.npz')
-    train_sequence = train_data['train_sequence']
-    train_cluster_id = train_data['train_cluster_id']
-    train_sequence_list = [seq.astype(float) + 0.00001 for seq in train_sequence]
-    train_cluster_id_list = [np.array(cid).astype(str) for cid in train_cluster_id]
+    train_sequences = train_data['train_sequence']
+    train_cluster_ids = train_data['train_cluster_id']
+
+    train_sequences = [seq.astype(float) + 0.00001 for seq in train_sequences]
+    train_cluster_ids = [np.array(cid).astype(str) for cid in train_cluster_ids]
+
+    # Test data
+    """test_data = np.load('./ghostvlad/data/testing_data.npz', allow_pickle=True)
+
+    test_sequences = test_data['train_sequence']
+    test_cluster_ids = test_data['train_cluster_id']
+
+    test_sequences = [seq.astype(float) + 0.00001 for seq in test_sequences]
+    test_cluster_ids = [np.array(cid).astype(str) for cid in test_cluster_ids]"""
 
     model = uisrnn.UISRNN(model_args)
 
-    # training
-    model.fit(train_sequence_list, train_cluster_id_list, training_args)
-    model.save(SAVED_MODEL_NAME)
+    # Training
+    history = model.fit(train_sequences, train_cluster_ids, training_args)
+    iterations = np.arange(0, training_args.train_iteration)
 
-    '''
-    # testing
-    # we can also skip training by calling：
-    model.load(SAVED_MODEL_NAME)
+    model.save(MODEL_NAME)
+    with open('history.txt', 'w') as f:
+        f.write(str(history))
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=iterations,
+        y=history['train_loss'],
+        name='<b>train_loss</b>',
+        connectgaps=True
+    ))
+    fig.add_trace(go.Scatter(
+        x=iterations,
+        y=history['sigma2_prior'],
+        name='<b>sigma2_prior</b>',
+        connectgaps=True
+    ))
+    fig.add_trace(go.Scatter(
+        x=iterations,
+        y=history['negative_log_likelihood'],
+        name='<b>negative_log_likelihood</b>',
+        connectgaps=True
+    ))
+    fig.add_trace(go.Scatter(
+        x=iterations,
+        y=history['regularization'],
+        name='<b>regularization</b>',
+        connectgaps=True
+    ))
+    fig.show()
+
+    # Testing.
+    # You can also try uisrnn.parallel_predict to speed up with GPU.
+    # But that is a beta feature which is not thoroughly tested, so proceed with caution.
+    """model.load('./src/last_model/ru_model_20200309T2107.uis-rnn')
+
+    predicted_cluster_ids = []
+    test_record = []
+
     for (test_sequence, test_cluster_id) in zip(test_sequences, test_cluster_ids):
-      predicted_label = model.predict(test_sequence, inference_args)
-      predicted_labels.append(predicted_label)
-      accuracy = uisrnn.compute_sequence_match_accuracy(
-          test_cluster_id, predicted_label)
-      test_record.append((accuracy, len(test_cluster_id)))
-      print('Ground truth labels:')
-      print(test_cluster_id)
-      print('Predicted labels:')
-      print(predicted_label)
-      print('-' * 80)
-  
+        predicted_cluster_id = model.predict(test_sequence, inference_args)
+        predicted_cluster_ids.append(predicted_cluster_id)
+
+        accuracy = uisrnn.compute_sequence_match_accuracy(list(test_cluster_id), list(predicted_cluster_id))
+        test_record.append((accuracy, len(test_cluster_id)))
+
+        print('Ground truth labels:')
+        print(test_cluster_id)
+        print('Ground truth labels len: ', len(test_cluster_id))
+        print('Predicted labels:')
+        print(predicted_cluster_id)
+        print('Predicted labels len: ', len(predicted_cluster_id))
+        print('-' * 80)
+
     output_string = uisrnn.output_result(model_args, training_args, test_record)
-  
+
     print('Finished diarization experiment')
-    print(output_string)
-    '''
+    print(output_string)"""
 
 
-def main():
-    """The main function."""
+def train():
+    """The train function."""
     model_args, training_args, inference_args = uisrnn.parse_arguments()
     model_args.observation_dim = 512
     model_args.rnn_depth = 1
     model_args.rnn_hidden_size = 512
+
     training_args.enforce_cluster_id_uniqueness = False
-    training_args.batch_size = 30
-    training_args.learning_rate = 1e-4
-    training_args.train_iteration = 3000
+    training_args.batch_size = 5
+    training_args.learning_rate = 1e-3
+    training_args.train_iteration = 5000
     training_args.num_permutations = 20
     # training_args.grad_max_norm = 5.0
-    training_args.learning_rate_half_life = 1000
+    training_args.learning_rate_half_life = 500
+
     diarization_experiment(model_args, training_args, inference_args)
 
 
 if __name__ == '__main__':
-    main()
+    train()
