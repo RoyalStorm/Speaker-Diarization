@@ -41,7 +41,7 @@ parser.add_argument('--overlap_rate', default=0.4, type=float)
 args = parser.parse_args()
 
 SAVED_MODEL_NAME = 'src/pre_trained/saved_model.uisrnn_benchmark'
-RU_MODEL_NAME = 'src/last_model/ru_model_20200309T2107.uis-rnn'
+RU_MODEL_NAME = 'src/model/ru_model_20200309T2107.uis-rnn'
 
 
 def append_2_dict(speaker_slice, spk_period):
@@ -57,7 +57,8 @@ def append_2_dict(speaker_slice, spk_period):
     return speaker_slice
 
 
-def arrange_result(labels, time_spec_rate):  # {'1': [{'start':10, 'stop':20}, {'start':30, 'stop':40}],
+def arrange_result(labels, time_spec_rate):
+    # {'1': [{'start':10, 'stop':20}, {'start':30, 'stop':40}],
     #  '2': [{'start':90, # 'stop':100}]}
     last_label = labels[0]
     speaker_slice = {}
@@ -187,11 +188,13 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
         feats += [v]
 
     feats = np.array(feats)[:, 0, :].astype(float)  # [splits, embedding dim]
-    predicted_label = uisrnn_model.predict(feats, inference_args)
+    predicted_labels = uisrnn_model.predict(feats, inference_args)
+
+    # utils.visualize(feats, predicted_labels, 'real_world')
 
     time_spec_rate = 1000 * (1.0 / embedding_per_second) * (1.0 - overlap_rate)  # speaker embedding every ?ms
     center_duration = int(1000 * (1.0 / embedding_per_second) // 2)
-    speaker_slice = arrange_result(predicted_label, time_spec_rate)
+    speaker_slice = arrange_result(predicted_labels, time_spec_rate)
 
     # Time map to origin wav (contains mute)
     for speaker, timestamps_list in speaker_slice.items():
@@ -228,12 +231,3 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
 if __name__ == '__main__':
     main(args.audio, embedding_per_second=args.embedding_per_second, overlap_rate=args.overlap_rate)
-    """
-            for i in range(len(feats)):
-            for j in range(i, len(feats)):
-                print('Distance {:.4f} | {} and {}'.format(
-                    utils.distance(feats[i], feats[j]),
-                    utterance_speakers[i],
-                    utterance_speakers[j]
-                ))
-    """

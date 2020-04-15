@@ -1,7 +1,11 @@
 # Third Party
+import os
+
 import librosa
 import numpy as np
+import tensorflow as tf
 from scipy.spatial.distance import cosine
+from tensorboard.plugins import projector
 
 
 # ===============================================
@@ -34,11 +38,13 @@ def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, spec_le
     mag, _ = librosa.magphase(linear_spect)  # magnitude
     mag_T = mag.T
     freq, time = mag_T.shape
+
     if mode == 'train':
         randtime = np.random.randint(0, time - spec_len)
         spec_mag = mag_T[:, randtime:randtime + spec_len]
     else:
         spec_mag = mag_T
+
     # preprocessing, subtract mean, divided by time-wise var
     mu = np.mean(spec_mag, 0, keepdims=True)
     std = np.std(spec_mag, 0, keepdims=True)
@@ -48,3 +54,36 @@ def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, spec_le
 
 def distance(u, v):  # less is better
     return cosine(u, v)
+
+
+def visualize(feats, speaker_labels, mode):
+    if mode == 'real_world':
+        folder_path = f'./ghostvlad/projections/{mode}'
+    elif mode == 'test':
+        folder_path = f'./projections/{mode}'
+    else:
+        raise TypeError('mode should be "real_world" or "test"')
+
+    with open(os.path.join(folder_path, 'metadata.tsv'), 'w+') as metadata:
+        for label in speaker_labels:
+            if mode == 'real_world':
+                metadata.write(f'spk_{label}\n')
+            else:
+                metadata.write(f'{label}\n')
+
+    sess = tf.InteractiveSession()
+
+    with tf.device("/cpu:0"):
+        embedding = tf.Variable(feats, trainable=False, name=mode)
+        tf.global_variables_initializer().run()
+        saver = tf.train.Saver()
+        writer = tf.summary.FileWriter(folder_path, sess.graph)
+
+        config = projector.ProjectorConfig()
+        embed = config.embeddings.add()
+        embed.tensor_name = 'embedding'
+        embed.metadata_path = 'metadata.tsv'
+
+        projector.visualize_embeddings(writer, config)
+
+        saver.save(sess, os.path.join(folder_path, 'model.ckpt'), global_step=feats.shape[0] - 1)

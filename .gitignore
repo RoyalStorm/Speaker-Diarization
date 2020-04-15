@@ -7,8 +7,11 @@ dist/*
 uisrnn.egg-info/*
 .coverage
 .idea
-src/wavs/ru
+
 ghostvlad/data
 ghostvlad/projections
-src/last_model
+
+src/model
+src/wavs/ru
+
 history.txt

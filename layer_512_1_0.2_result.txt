@@ -61,3 +61,31 @@ Performance:
     0.805405
     0.807339
 ================================================================================
+Config:
+  sigma_alpha: 1.0
+  sigma_beta: 1.0
+  crp_alpha: 1.0
+  learning rate: 5e-05
+  learning rate half life: 0
+  regularization: 1e-05
+  batch size: 10
+
+Performance:
+  averaged accuracy: 0.809726
+  accuracy numbers for all testing sequences:
+    0.860465
+    0.776923
+    0.914729
+    0.877301
+    0.808743
+    0.726667
+    0.823970
+    0.893333
+    0.836735
+    0.766323
+    0.857988
+    0.663438
+    0.726937
+    0.903846
+    0.708487
+================================================================================
