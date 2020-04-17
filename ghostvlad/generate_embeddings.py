@@ -134,33 +134,6 @@ def prepare_dataset(dataset_path):
     return list(zip(paths_list, speakers_labels_list))
 
 
-def accuracy_by_cosine_distance(feats, utterance_speakers):
-    unique = np.unique(utterance_speakers)
-
-    delegated_embeddings = dict.fromkeys(unique)
-    for label in unique:
-        indexes = np.where(np.array(utterance_speakers) == label)
-        delegated_embeddings[label] = np.median(feats[np.amin(indexes):np.amax(indexes)], axis=0)
-
-    labels = []
-    for i in range(len(feats)):
-        min_distance = 1
-        speaker_label = None
-
-        for j, (key, value) in enumerate(delegated_embeddings.items()):
-            distance = utils.distance(feats[i], value)
-
-            if distance < min_distance:
-                min_distance = distance
-                speaker_label = key
-
-        labels.append(speaker_label)
-
-    equals_labels = np.where(np.array(labels) == np.array(utterance_speakers))
-
-    return len(equals_labels[0]) / len(utterance_speakers)
-
-
 def generate_embeddings():
     # GPU config
     toolkits.initialize_GPU(args)

@@ -40,8 +40,7 @@ parser.add_argument('--overlap_rate', default=0.4, type=float)
 
 args = parser.parse_args()
 
-SAVED_MODEL_NAME = 'src/pre_trained/saved_model.uisrnn_benchmark'
-RU_MODEL_NAME = 'src/model/ru_model_20200309T2107.uis-rnn'
+MODEL_NAME = 'src/model/ru_model_2750_04.13T19.28.uis-rnn'
 
 
 def append_2_dict(speaker_slice, spk_period):
@@ -99,7 +98,7 @@ def beautify_time(time_in_milliseconds):
     second = (time_in_milliseconds - minute * 60 * 1000) // 1000
     millisecond = time_in_milliseconds % 1000
 
-    time = '{}:{:02d}.{}'.format(minute, second, millisecond)
+    time = f'{minute}:{second:02d}.{millisecond}'
 
     return time
 
@@ -176,7 +175,7 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
     model_args, _, inference_args = uisrnn.parse_arguments()
     model_args.observation_dim = 512
     uisrnn_model = uisrnn.UISRNN(model_args)
-    uisrnn_model.load(RU_MODEL_NAME)
+    uisrnn_model.load(MODEL_NAME)
 
     specs, intervals = load_data(wav_path, embedding_per_second=embedding_per_second, overlap_rate=overlap_rate)
     map_table, keys = gen_map(intervals)
@@ -188,7 +187,10 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
         feats += [v]
 
     feats = np.array(feats)[:, 0, :].astype(float)  # [splits, embedding dim]
-    predicted_labels = uisrnn_model.predict(feats, inference_args)
+
+    # predicted_labels = uisrnn_model.predict(feats, inference_args)
+    clusters = utils.setup_dbscan(feats)
+    predicted_labels = utils.classify_noise(feats, clusters)
 
     # utils.visualize(feats, predicted_labels, 'real_world')
 
