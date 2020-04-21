@@ -34,13 +34,13 @@ parser.add_argument('--loss', default='softmax', choices=['softmax', 'amsoftmax'
 parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 'extend'], type=str)
 
 # Set up other configuration
-parser.add_argument('--audio', default='src/wavs/ru/2/ru_test_rtk2.wav', type=str)
-parser.add_argument('--embedding_per_second', default=1.2, type=float)
+parser.add_argument('--audio', default='src/wavs/ru/1/ru_test_rtk1.wav', type=str)
+parser.add_argument('--embedding_per_second', default=1.6, type=float)
 parser.add_argument('--overlap_rate', default=0.4, type=float)
 
 args = parser.parse_args()
 
-MODEL_NAME = 'src/model/ru_model_2750_04.13T19.28.uis-rnn'
+MODEL_NAME = 'src/model/ru_model_20200309T2107.uis-rnn'
 
 
 def append_2_dict(speaker_slice, spk_period):
@@ -189,8 +189,8 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
     feats = np.array(feats)[:, 0, :].astype(float)  # [splits, embedding dim]
 
     # predicted_labels = uisrnn_model.predict(feats, inference_args)
-    clusters = utils.setup_dbscan(feats)
-    predicted_labels = utils.classify_noise(feats, clusters)
+    predicted_labels = utils.cluster_by_dbscan(feats)
+    # predicted_labels = utils.setup_umap(feats)
 
     # utils.visualize(feats, predicted_labels, 'real_world')
 

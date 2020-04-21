@@ -5,9 +5,13 @@ import librosa
 import numpy as np
 import tensorflow as tf
 from scipy.spatial.distance import cosine
-from sklearn.cluster import DBSCAN, Birch
+from sklearn.cluster import DBSCAN
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import normalize
 from tensorboard.plugins import projector
+import umap
+import hdbscan
+import matplotlib.pyplot as plt
 
 
 # ===============================================
@@ -54,49 +58,40 @@ def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, spec_le
     return (spec_mag - mu) / (std + 1e-5)
 
 
-def setup_dbscan(feats):
-    dbscan = DBSCAN(min_samples=10)
-    dbscan.fit(feats)
-
-    return dbscan.labels_
-
-
-def setup_birch(feats):
-    birch = Birch(n_clusters=None, branching_factor=500, threshold=0.5)
-    birch.fit(feats)
-    labels = birch.predict(feats)
-
-    return labels
+def umap_transformation(feats):
+    return umap.UMAP(
+        n_neighbors=30,
+        min_dist=0.0,
+        n_components=2,
+        random_state=42
+    ).fit_transform(feats)
 
 
-def classify_noise(feats, clusters):
-    unique = np.unique(clusters)
-    delegated_embeddings = dict.fromkeys(unique)
+def cluster_by_dbscan(feats):
+    dbscan = DBSCAN(min_samples=5)
+    feats = umap_transformation(feats)
+    clusters = dbscan.fit_predict(feats)
 
     noise_cluster_name = -1
 
-    for label in unique:
-        indexes = np.where(np.array(clusters) == label)
-        delegated_embeddings[label] = np.median(feats[np.amin(indexes):np.amax(indexes)], axis=0)
+    return list(map(lambda i, _: clusters[i], np.where(np.array(clusters) != noise_cluster_name)[0], clusters))
 
-    del delegated_embeddings[noise_cluster_name]
 
-    noise_embeddings_indexes = np.where(np.array(clusters) == noise_cluster_name)[0]
+def setup_umap(feats):
+    clusterable_embedding = umap_transformation(feats)
 
-    for i in noise_embeddings_indexes:
-        min_distance = 1
-        speaker_label = None
+    labels = hdbscan.HDBSCAN(
+        min_samples=10
+    ).fit_predict(clusterable_embedding)
 
-        for key, value in delegated_embeddings.items():
-            dist = cosine(feats[i], value)  # less is better
+    standard_embedding = umap.UMAP(random_state=42).fit_transform(feats)
+    plt.scatter(standard_embedding[:, 0],
+                standard_embedding[:, 1],
+                c=labels,
+                s=1,
+                cmap='Spectral')
 
-            if dist < min_distance:
-                min_distance = dist
-                speaker_label = key
-
-        clusters[i] = speaker_label
-
-    return clusters
+    return labels
 
 
 def visualize(feats, speaker_labels, mode):
