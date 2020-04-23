@@ -6,12 +6,14 @@ import numpy as np
 import tensorflow as tf
 from scipy.spatial.distance import cosine
 from sklearn.cluster import DBSCAN
+from sklearn.metrics import classification_report
+from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import normalize
 from tensorboard.plugins import projector
+import matplotlib.pyplot as plt
 import umap
 import hdbscan
-import matplotlib.pyplot as plt
 
 
 # ===============================================
@@ -68,7 +70,14 @@ def umap_transformation(feats):
 
 
 def cluster_by_dbscan(feats):
-    dbscan = DBSCAN(min_samples=5)
+    m = 5
+
+    def eps(m):
+        eps = 0.5
+
+        return eps
+
+    dbscan = DBSCAN(eps=eps(m), min_samples=m)
     feats = umap_transformation(feats)
     clusters = dbscan.fit_predict(feats)
 
@@ -77,21 +86,17 @@ def cluster_by_dbscan(feats):
     return list(map(lambda i, _: clusters[i], np.where(np.array(clusters) != noise_cluster_name)[0], clusters))
 
 
-def setup_umap(feats):
+def cluster_by_hdbscan(feats):
     clusterable_embedding = umap_transformation(feats)
 
-    labels = hdbscan.HDBSCAN(
-        min_samples=10
-    ).fit_predict(clusterable_embedding)
-
-    standard_embedding = umap.UMAP(random_state=42).fit_transform(feats)
+    """standard_embedding = umap.UMAP(random_state=42).fit_transform(feats)
     plt.scatter(standard_embedding[:, 0],
                 standard_embedding[:, 1],
                 c=labels,
                 s=1,
-                cmap='Spectral')
+                cmap='Spectral')"""
 
-    return labels
+    return hdbscan.HDBSCAN(min_samples=10).fit_predict(clusterable_embedding)
 
 
 def visualize(feats, speaker_labels, mode):
@@ -100,7 +105,7 @@ def visualize(feats, speaker_labels, mode):
     elif mode == 'test':
         folder_path = f'./projections/{mode}'
     else:
-        raise TypeError('mode should be "real_world" or "test"')
+        raise TypeError('"mode" should be "real_world" or "test"')
 
     with open(os.path.join(folder_path, 'metadata.tsv'), 'w+') as metadata:
         for label in speaker_labels:

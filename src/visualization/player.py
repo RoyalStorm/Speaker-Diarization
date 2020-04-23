@@ -24,7 +24,8 @@ class AudioPlayer:
     def callback(self, in_data, frame_count, time_info, status):
         data = self.wf.readframes(frame_count)
         self.pos += frame_count
-        return (data, pyaudio.paContinue)
+
+        return data, pyaudio.paContinue
 
     def _open(self, wav):
         self.wf = wave.open(wav, 'rb')

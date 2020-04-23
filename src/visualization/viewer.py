@@ -8,12 +8,21 @@ class PlotDiar:
     A viewer of segmentation
     """
 
-    def __init__(self, map=None, wav=None, title='', gui=False, pick=False, vgrid=False, size=(18, 9)):
+    def __init__(self,
+                 map=None,
+                 true_map=None,
+                 wav=None,
+                 title='',
+                 gui=False,
+                 pick=False,
+                 vgrid=False,
+                 size=(18, 9)
+                 ):
         self.rect_picked = None
-        self.rect_color = (0.0, 0.6, 1.0, 1.0)  # '#0099FF'
+        self.rect_color = '#ffd740'
         self.rect_selected_color = (0.75, 0.75, 0, 1.0)  # 'y'
-        self.cluster_colors = [(0.0, 0.6, 1.0, 1.0), (0.0, 1.0, 0.6, 1.0), (0.6, 0.0, 1.0, 1.0),
-                               (0.6, 1.0, 0.0, 1.0), (1.0, 0.0, 0.6, 1.0), (1.0, 0.6, 0.0, 1.0)]
+        self.cluster_colors = ['#ffd740', '#00bcd4', '#00e676', '#9c27b0', '#ffff00', '#e91e63']
+        self.true_cluster_colors = ['#ffab00', '#0097a7', '#00e676', '#9c27b0', '#ffff00', '#e91e63']
 
         plot.rcParams['keymap.fullscreen'] = 'ctrl+f'
         plot.rcParams['keymap.home'] = ''
@@ -28,7 +37,6 @@ class PlotDiar:
         plot.rcParams['keymap.all_axes'] = ''
         plot.rcParams['toolbar'] = 'None'
         plot.rcParams['keymap.save'] = 'ctrl+s'
-        # plot.rcParams.update({'font.family': 'courrier'})
 
         self.pick = pick
         self.gui = gui
@@ -60,6 +68,7 @@ class PlotDiar:
 
         self.timeline = self.ax.plot([0, 0], [0, 0], color='r')[-1]
         self.map = map
+        self.true_map = true_map
         self.time_stamp = list()
         self.time_stamp_idx = 0
 
@@ -97,44 +106,55 @@ class PlotDiar:
         :param t: a float
         :return:
         """
-        ch = 'time:{:s} ({:.3f} sec {:d} frame)'.format(self._hms(t), t,
+        ch = 'Time:{:s} ({:.3f} sec {:d} frame)'.format(self._hms(t), t,
                                                         int(t * 100))
         ch2 = '\n\n\n'
         if self.rect_picked is not None:
             s = self.rect_picked.get_x()
             w = self.rect_picked.get_width()
             e = s + w
-            ch2 = 'segment  start: {:20s} ({:8.2f} sec {:8d} frame)\n'.format(
+            ch2 = 'Segment  start: {:20s} ({:8.2f} sec {:8d} frame)\n'.format(
                 self._hms(s), s, int(s * 100))
-            ch2 += 'segment   stop: {:20s} ({:8.2f} sec {:8d} frame)\n'.format(
+            ch2 += 'Segment   stop: {:20s} ({:8.2f} sec {:8d} frame)\n'.format(
                 self._hms(e), e, int(e * 100))
-            ch2 += 'segment lenght: {:20s} ({:8.2f} sec {:8d} frame)\n'.format(
+            ch2 += 'Segment length: {:20s} ({:8.2f} sec {:8d} frame)\n'.format(
                 self._hms(w), w, int(w * 100))
 
         plot.xlabel(ch + '\n' + ch2)
+        plot.ylabel('Speakers')
+
+    def draw_map(self, map, colors):
+        y = 0
+        labels_pos = []
+        labels = []
+        self.time_stamp = []
+
+        for i, cluster in enumerate(sorted(map.keys())):
+            labels.append(cluster)
+            labels_pos.append(y + self.height // 2)
+
+            for row in map[cluster]:
+                x = row['start'] / 1000
+                self.time_stamp.append(x)
+                self.time_stamp.append(row['stop'] / 1000)
+                w = row['stop'] / 1000 - row['start'] / 1000
+                self.maxx = max(self.maxx, row['stop'] / 1000)
+                c = colors[i % len(colors)]
+                rect = plot.Rectangle((x, y), w, self.height, color=c, picker=self.pick)
+                self.ax.add_patch(rect)
+
+            y += self.height
+
+        return y, labels, labels_pos
 
     def draw(self):
         """
         Draw the segmentation
 
         """
-        y = 0
-        labels_pos = []
-        labels = []
-        for i, cluster in enumerate(sorted(self.map.keys())):
-            labels.append(cluster)
-            labels_pos.append(y + self.height // 2)
-            for row in self.map[cluster]:
-                x = row['start'] / 1000
-                self.time_stamp.append(x)
-                self.time_stamp.append(row['stop'] / 1000)
-                w = row['stop'] / 1000 - row['start'] / 1000
-                self.maxx = max(self.maxx, row['stop'] / 1000)
-                c = self.cluster_colors[i % len(self.cluster_colors)]
-                rect = plot.Rectangle((x, y), w, self.height,
-                                      color=c, picker=self.pick)
-                self.ax.add_patch(rect)
-            y += self.height
+        self.draw_map(self.map, self.cluster_colors)
+        y, labels, labels_pos = self.draw_map(self.true_map, self.true_cluster_colors)
+
         if self.gui:
             plot.xlim([0, min(600, self.maxx)])
         else:
@@ -144,12 +164,12 @@ class PlotDiar:
         plot.yticks(labels_pos, labels)
         self.maxy = y
         self.end_play = self.maxx
+
         for cluster in self.map:
-            self.ax.plot([0, self.maxx], [y, y], linestyle=':',
-                         color='#AAAAAA')
+            self.ax.plot([0, self.maxx], [y, y], linestyle=':', color='#AAAAAA')
             y -= self.height
 
-        plot.title(self.title + ' (last frame: ' + str(self.maxx) + ')')
+        plot.title(f'Diarization map for {self.wav}')
         if self.gui:
             self._draw_info(0)
         plot.tight_layout()
@@ -158,8 +178,7 @@ class PlotDiar:
 
         if self.vgrid:
             for x in self.time_stamp:
-                self.ax.plot([x, x], [0, self.maxy], linestyle=':',
-                             color='#AAAAAA')
+                self.ax.plot([x, x], [0, self.maxy], linestyle=':', color='#AAAAAA')
 
     def _dec_right(self, min, max):
         """

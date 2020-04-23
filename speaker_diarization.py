@@ -35,7 +35,7 @@ parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 
 
 # Set up other configuration
 parser.add_argument('--audio', default='src/wavs/ru/1/ru_test_rtk1.wav', type=str)
-parser.add_argument('--embedding_per_second', default=1.6, type=float)
+parser.add_argument('--embedding_per_second', default=1.8, type=float)
 parser.add_argument('--overlap_rate', default=0.4, type=float)
 
 args = parser.parse_args()
@@ -91,6 +91,25 @@ def gen_map(intervals):  # interval slices to map table
     keys.sort()
 
     return map_table, keys
+
+
+def read_true_map(path):
+    with open(path, 'r') as file:
+        spk_number = 0
+        true_map = {spk_number: []}
+
+        def empty(line):
+            return line in ['\n', '\r\n']
+
+        for line in file:
+            if empty(line):
+                spk_number += 1
+                true_map[spk_number] = []
+            else:
+                true_map[spk_number].append({'start': float(line.split(' ')[0]) * 1000,
+                                             'stop': float(line.split(' ')[1]) * 1000})
+
+    return true_map
 
 
 def beautify_time(time_in_milliseconds):
@@ -189,8 +208,8 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
     feats = np.array(feats)[:, 0, :].astype(float)  # [splits, embedding dim]
 
     # predicted_labels = uisrnn_model.predict(feats, inference_args)
-    predicted_labels = utils.cluster_by_dbscan(feats)
-    # predicted_labels = utils.setup_umap(feats)
+    # predicted_labels = utils.cluster_by_dbscan(feats)
+    predicted_labels = utils.cluster_by_hdbscan(feats)
 
     # utils.visualize(feats, predicted_labels, 'real_world')
 
@@ -226,7 +245,9 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
             print(s + ' --> ' + e)
 
-    p = PlotDiar(map=speaker_slice, wav=wav_path, gui=True, size=(25, 6))
+    true_map = read_true_map('./src/wavs/ru/1/true.txt')
+
+    p = PlotDiar(map=speaker_slice, true_map=true_map, wav=wav_path, gui=True, size=(24, 6))
     p.draw()
     p.plot.show()
 
