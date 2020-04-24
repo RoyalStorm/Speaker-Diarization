@@ -248,8 +248,9 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
     true_map = read_true_map('./src/wavs/ru/1/true.txt')
 
     p = PlotDiar(map=speaker_slice, true_map=true_map, wav=wav_path, gui=True, size=(24, 6))
-    p.draw()
-    p.plot.show()
+    p.draw_true_map()
+    p.draw_map()
+    p.show()
 
 
 if __name__ == '__main__':
