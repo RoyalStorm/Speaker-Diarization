@@ -10,6 +10,7 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import normalize
+from spectralcluster import SpectralClusterer
 from tensorboard.plugins import projector
 import matplotlib.pyplot as plt
 import umap
@@ -67,6 +68,14 @@ def umap_transformation(feats):
         n_components=2,
         random_state=42
     ).fit_transform(feats)
+
+
+def cluster_by_spectral(feats):
+    clusters = SpectralClusterer(
+        p_percentile=0.95,
+        gaussian_blur_sigma=1)
+
+    return clusters.predict(feats)
 
 
 def cluster_by_dbscan(feats):
