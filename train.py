@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from datetime import datetime
+import datetime
 
 import numpy as np
 import plotly.graph_objects as go
 
 import uisrnn
+
+MODEL_NAME = './src/ru_model_' + datetime.datetime.now().strftime('%Y%m%dT%H%M') + '.uis-rnn'''
 
 
 def diarization_experiment(model_args, training_args, inference_args):
@@ -54,7 +56,7 @@ def diarization_experiment(model_args, training_args, inference_args):
     history = model.fit(train_sequences, train_cluster_ids, training_args)
     iterations = np.arange(0, training_args.train_iteration)
 
-    model.save(f'./src/model/ru_model_{training_args.train_iteration}_{datetime.now().strftime("%m.%dT%H.%M")}.uis-rnn')
+    model.save(MODEL_NAME)
     with open('history.txt', 'w') as f:
         f.write(str(history))
 
@@ -122,12 +124,12 @@ def train():
     model_args.rnn_hidden_size = 512
 
     training_args.enforce_cluster_id_uniqueness = False
-    training_args.batch_size = 10
-    training_args.learning_rate = 5e-5
-    training_args.train_iteration = 2750
-    training_args.num_permutations = 10
+    training_args.batch_size = 5
+    training_args.learning_rate = 1e-3
+    training_args.train_iteration = 5000
+    training_args.num_permutations = 20
     # training_args.grad_max_norm = 5.0
-    training_args.learning_rate_half_life = 0
+    training_args.learning_rate_half_life = 500
 
     diarization_experiment(model_args, training_args, inference_args)
 

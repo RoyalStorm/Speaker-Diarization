@@ -8,10 +8,9 @@ uisrnn.egg-info/*
 .coverage
 .idea
 
-ghostvlad/data
-ghostvlad/projections
+embedding/data
+embedding/projections
 
-src/model
-src/wavs/ru
+wavs
 
 history.txt

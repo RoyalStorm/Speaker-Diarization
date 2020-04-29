@@ -1,27 +1,19 @@
 """A demo script showing how to DIARIZATION ON WAV USING UIS-RNN."""
 
 import argparse
-import sys
 from datetime import datetime
 
 import librosa
 import numpy as np
 
-import uisrnn
-
-sys.path.append('ghostvlad')
-sys.path.append('src/visualization')
-
-import model
-import toolkits
-import utils
-from viewer import PlotDiar
+from embedding import utils, toolkits, model
+from visualization.viewer import PlotDiar
 
 parser = argparse.ArgumentParser()
 
 # Set up training configuration
 parser.add_argument('--gpu', default='', type=str)
-parser.add_argument('--resume', default=r'ghostvlad/pre_trained/weights.h5', type=str)
+parser.add_argument('--resume', default=r'embedding/pre_trained/weights.h5', type=str)
 
 # Set up network configuration
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
@@ -35,13 +27,11 @@ parser.add_argument('--loss', default='softmax', choices=['softmax', 'amsoftmax'
 parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 'extend'], type=str)
 
 # Set up other configuration
-parser.add_argument('--audio', default='src/wavs/ru/2/ru_test_rtk2.wav', type=str)
+parser.add_argument('--audio', default='./wavs/2/rtk2.wav', type=str)
 parser.add_argument('--embedding_per_second', default=1.8, type=float)
 parser.add_argument('--overlap_rate', default=0.4, type=float)
 
 args = parser.parse_args()
-
-MODEL_NAME = 'src/model/ru_model_20200309T2107.uis-rnn'
 
 
 def append_2_dict(speaker_slice, spk_period):
@@ -111,8 +101,8 @@ def read_true_map(path):
                 dt_start = datetime.strptime(start, '%M:%S.%f')
                 dt_stop = datetime.strptime(stop, '%M:%S.%f')
 
-                start = dt_start.minute * 60_000 + dt_start.second * 1000 + dt_start.microsecond / 1000
-                stop = dt_stop.minute * 60_000 + dt_stop.second * 1000 + dt_stop.microsecond / 1000
+                start = dt_start.minute * 60_000 + dt_start.second * 1_000 + dt_start.microsecond / 1_000
+                stop = dt_stop.minute * 60_000 + dt_stop.second * 1_000 + dt_stop.microsecond / 1_000
 
                 true_map[spk_number].append({'start': start, 'stop': stop})
 
@@ -120,9 +110,9 @@ def read_true_map(path):
 
 
 def beautify_time(time_in_milliseconds):
-    minute = time_in_milliseconds // 1000 // 60
-    second = (time_in_milliseconds - minute * 60 * 1000) // 1000
-    millisecond = time_in_milliseconds % 1000
+    minute = time_in_milliseconds // 1_000 // 60
+    second = (time_in_milliseconds - minute * 60 * 1_000) // 1_000
+    millisecond = time_in_milliseconds % 1_000
 
     time = f'{minute}:{second:02d}.{millisecond}'
 
@@ -198,11 +188,6 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
                                                 mode='eval', args=args)
     network_eval.load_weights(args.resume, by_name=True)
 
-    model_args, _, inference_args = uisrnn.parse_arguments()
-    model_args.observation_dim = 512
-    uisrnn_model = uisrnn.UISRNN(model_args)
-    uisrnn_model.load(MODEL_NAME)
-
     specs, intervals = load_data(wav_path, embedding_per_second=embedding_per_second, overlap_rate=overlap_rate)
     map_table, keys = gen_map(intervals)
 
@@ -214,12 +199,10 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
     feats = np.array(feats)[:, 0, :].astype(float)  # [splits, embedding dim]
 
-    # predicted_labels = uisrnn_model.predict(feats, inference_args)
-    # predicted_labels = utils.cluster_by_dbscan(feats)
-    # predicted_labels = utils.cluster_by_hdbscan(feats)
-    predicted_labels = utils.cluster_by_spectral(feats)
+    predicted_labels = utils.cluster_by_hdbscan(feats)
+    # predicted_labels = utils.cluster_by_spectral(feats)
 
-    # utils.visualize(feats, predicted_labels, 'real_world')
+    utils.visualize(feats, predicted_labels, 'real_world')
 
     time_spec_rate = 1000 * (1.0 / embedding_per_second) * (1.0 - overlap_rate)  # speaker embedding every ?ms
     center_duration = int(1000 * (1.0 / embedding_per_second) // 2)
@@ -253,7 +236,7 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
             print(s + ' --> ' + e)
 
-    true_map = read_true_map('./src/wavs/ru/2/true.txt')
+    true_map = read_true_map('wavs/2/true.txt')
 
     p = PlotDiar(true_map=true_map, map=speaker_slice, wav=wav_path, gui=True, size=(24, 6))
     p.draw_true_map()

@@ -1,20 +1,18 @@
 # Third Party
 import os
 
+import hdbscan
 import librosa
 import numpy as np
 import tensorflow as tf
-from scipy.spatial.distance import cosine
+import umap
 from sklearn.cluster import DBSCAN
-from sklearn.metrics import classification_report
-from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import normalize
 from spectralcluster import SpectralClusterer
 from tensorboard.plugins import projector
-import matplotlib.pyplot as plt
-import umap
-import hdbscan
+from tensorflow.compat.v1 import InteractiveSession
+from tensorflow.compat.v1 import global_variables_initializer
+from tensorflow.compat.v1.summary import FileWriter
+from tensorflow.compat.v1.train import Saver
 
 
 # ===============================================
@@ -110,7 +108,7 @@ def cluster_by_hdbscan(feats):
 
 def visualize(feats, speaker_labels, mode):
     if mode == 'real_world':
-        folder_path = f'./ghostvlad/projections/{mode}'
+        folder_path = f'./embedding/projections/{mode}'
     elif mode == 'test':
         folder_path = f'./projections/{mode}'
     else:
@@ -123,13 +121,13 @@ def visualize(feats, speaker_labels, mode):
             else:
                 metadata.write(f'{label}\n')
 
-    sess = tf.InteractiveSession()
+    sess = InteractiveSession()
 
     with tf.device("/cpu:0"):
         embedding = tf.Variable(feats, trainable=False, name=mode)
-        tf.global_variables_initializer().run()
-        saver = tf.train.Saver()
-        writer = tf.summary.FileWriter(folder_path, sess.graph)
+        global_variables_initializer().run()
+        saver = Saver()
+        writer = FileWriter(folder_path, sess.graph)
 
         config = projector.ProjectorConfig()
         embed = config.embeddings.add()

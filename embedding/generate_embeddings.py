@@ -6,10 +6,9 @@ import os
 import random
 
 import librosa as lr
-import model
 import numpy as np
-import toolkits
-import utils
+
+from embedding import model, toolkits, utils
 
 parser = argparse.ArgumentParser()
 
