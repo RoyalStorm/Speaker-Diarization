@@ -5,6 +5,7 @@ from datetime import datetime
 
 import librosa
 import numpy as np
+import simpleder
 
 from embedding import utils, toolkits, model
 from visualization.viewer import PlotDiar
@@ -63,7 +64,6 @@ def arrange_result(labels, time_spec_rate):
         last_label = label
 
     speaker_slice = append_2_dict(speaker_slice, {last_label: (time_spec_rate * j, time_spec_rate * (len(labels)))})
-
     return speaker_slice
 
 
@@ -80,7 +80,6 @@ def gen_map(intervals):  # interval slices to map table
 
     keys = [k for k, _ in map_table.items()]
     keys.sort()
-
     return map_table, keys
 
 
@@ -200,6 +199,7 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
     feats = np.array(feats)[:, 0, :].astype(float)  # [splits, embedding dim]
 
     predicted_labels = utils.cluster_by_hdbscan(feats)
+    knn = utils.setup_knn()
     # predicted_labels = utils.cluster_by_spectral(feats)
 
     # utils.visualize(feats, predicted_labels, 'real_world')
@@ -242,6 +242,21 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
     p.draw_true_map()
     p.draw_map()
     p.show()
+
+    def converter(map):
+        segments = []
+
+        for cluster in sorted(map.keys()):
+            for row in map[cluster]:
+                segments.append((str(cluster), row['start'] / 1000, row['stop'] / 1000))
+
+        segments.sort(key=lambda segment: segment[1])
+        return segments
+
+    ref = converter(speaker_slice)
+    hyp = converter(true_map)
+    error = simpleder.DER(ref, hyp)
+    print(f'DER = {round(error, 5) * 100}%')
 
 
 if __name__ == '__main__':

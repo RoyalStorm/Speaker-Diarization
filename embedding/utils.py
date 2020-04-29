@@ -7,6 +7,7 @@ import numpy as np
 import tensorflow as tf
 import umap
 from sklearn.cluster import DBSCAN
+from sklearn.neighbors import KNeighborsClassifier
 from spectralcluster import SpectralClusterer
 from tensorboard.plugins import projector
 from tensorflow.compat.v1 import InteractiveSession
@@ -91,6 +92,13 @@ def cluster_by_dbscan(feats):
     noise_cluster_name = -1
 
     return list(map(lambda i, _: clusters[i], np.where(np.array(clusters) != noise_cluster_name)[0], clusters))
+
+
+def setup_knn(embeddings_pull, ground_truth_labels):
+    knn = KNeighborsClassifier(n_neighbors=10, weights='distance')
+    knn.fit(embeddings_pull, ground_truth_labels)
+
+    return knn
 
 
 def cluster_by_hdbscan(feats):

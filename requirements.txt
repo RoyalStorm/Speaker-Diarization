@@ -10,3 +10,7 @@ spectralcluster~=0.0.9
 tensorboard~=2.1.0
 PyAudio~=0.2.11
 matplotlib~=3.1.2
+torch~=1.3.1
+scipy~=1.4.1
+plotly~=4.5.4
+simpleder~=0.0.2
