@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import backbone
+from embedding import backbone
 import keras
 import keras.backend as K
 import tensorflow as tf

@@ -1,26 +1,20 @@
 """A demo script showing how to DIARIZATION ON WAV USING UIS-RNN."""
 
 import argparse
-import sys
+from datetime import datetime
 
 import librosa
 import numpy as np
+import simpleder
 
-import uisrnn
-
-sys.path.append('ghostvlad')
-sys.path.append('src/visualization')
-
-import model
-import toolkits
-import utils
-from viewer import PlotDiar
+from embedding import utils, toolkits, model
+from visualization.viewer import PlotDiar
 
 parser = argparse.ArgumentParser()
 
 # Set up training configuration
 parser.add_argument('--gpu', default='', type=str)
-parser.add_argument('--resume', default=r'ghostvlad/pre_trained/weights.h5', type=str)
+parser.add_argument('--resume', default=r'embedding/pre_trained/weights.h5', type=str)
 
 # Set up network configuration
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
@@ -34,14 +28,11 @@ parser.add_argument('--loss', default='softmax', choices=['softmax', 'amsoftmax'
 parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 'extend'], type=str)
 
 # Set up other configuration
-parser.add_argument('--audio', default='src/wavs/ru/2/ru_test_rtk2.wav', type=str)
-parser.add_argument('--embedding_per_second', default=1.2, type=float)
+parser.add_argument('--audio', default='./wavs/2/rtk2.wav', type=str)
+parser.add_argument('--embedding_per_second', default=1.8, type=float)
 parser.add_argument('--overlap_rate', default=0.4, type=float)
 
 args = parser.parse_args()
-
-SAVED_MODEL_NAME = 'src/pre_trained/saved_model.uisrnn_benchmark'
-RU_MODEL_NAME = 'src/last_model/ru_model_20200309T2107.uis-rnn'
 
 
 def append_2_dict(speaker_slice, spk_period):
@@ -57,7 +48,8 @@ def append_2_dict(speaker_slice, spk_period):
     return speaker_slice
 
 
-def arrange_result(labels, time_spec_rate):  # {'1': [{'start':10, 'stop':20}, {'start':30, 'stop':40}],
+def arrange_result(labels, time_spec_rate):
+    # {'1': [{'start':10, 'stop':20}, {'start':30, 'stop':40}],
     #  '2': [{'start':90, # 'stop':100}]}
     last_label = labels[0]
     speaker_slice = {}
@@ -72,7 +64,6 @@ def arrange_result(labels, time_spec_rate):  # {'1': [{'start':10, 'stop':20}, {
         last_label = label
 
     speaker_slice = append_2_dict(speaker_slice, {last_label: (time_spec_rate * j, time_spec_rate * (len(labels)))})
-
     return speaker_slice
 
 
@@ -89,16 +80,40 @@ def gen_map(intervals):  # interval slices to map table
 
     keys = [k for k, _ in map_table.items()]
     keys.sort()
-
     return map_table, keys
 
 
-def beautify_time(time_in_milliseconds):
-    minute = time_in_milliseconds // 1000 // 60
-    second = (time_in_milliseconds - minute * 60 * 1000) // 1000
-    millisecond = time_in_milliseconds % 1000
+def read_true_map(path):
+    with open(path, 'r') as file:
+        spk_number = 0
+        true_map = {spk_number: []}
 
-    time = '{}:{:02d}.{}'.format(minute, second, millisecond)
+        def empty(line):
+            return line in ['\n', '\r\n']
+
+        for line in file:
+            if empty(line):
+                spk_number += 1
+                true_map[spk_number] = []
+            else:
+                start, stop = line.split(' ')[0], line.split(' ')[1].replace('\n', '')
+                dt_start = datetime.strptime(start, '%M:%S.%f')
+                dt_stop = datetime.strptime(stop, '%M:%S.%f')
+
+                start = dt_start.minute * 60_000 + dt_start.second * 1_000 + dt_start.microsecond / 1_000
+                stop = dt_stop.minute * 60_000 + dt_stop.second * 1_000 + dt_stop.microsecond / 1_000
+
+                true_map[spk_number].append({'start': start, 'stop': stop})
+
+    return true_map
+
+
+def beautify_time(time_in_milliseconds):
+    minute = time_in_milliseconds // 1_000 // 60
+    second = (time_in_milliseconds - minute * 60 * 1_000) // 1_000
+    millisecond = time_in_milliseconds % 1_000
+
+    time = f'{minute}:{second:02d}.{millisecond}'
 
     return time
 
@@ -172,11 +187,6 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
                                                 mode='eval', args=args)
     network_eval.load_weights(args.resume, by_name=True)
 
-    model_args, _, inference_args = uisrnn.parse_arguments()
-    model_args.observation_dim = 512
-    uisrnn_model = uisrnn.UISRNN(model_args)
-    uisrnn_model.load(RU_MODEL_NAME)
-
     specs, intervals = load_data(wav_path, embedding_per_second=embedding_per_second, overlap_rate=overlap_rate)
     map_table, keys = gen_map(intervals)
 
@@ -187,11 +197,16 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
         feats += [v]
 
     feats = np.array(feats)[:, 0, :].astype(float)  # [splits, embedding dim]
-    predicted_label = uisrnn_model.predict(feats, inference_args)
+
+    predicted_labels = utils.cluster_by_hdbscan(feats)
+    knn = utils.setup_knn()
+    # predicted_labels = utils.cluster_by_spectral(feats)
+
+    # utils.visualize(feats, predicted_labels, 'real_world')
 
     time_spec_rate = 1000 * (1.0 / embedding_per_second) * (1.0 - overlap_rate)  # speaker embedding every ?ms
     center_duration = int(1000 * (1.0 / embedding_per_second) // 2)
-    speaker_slice = arrange_result(predicted_label, time_spec_rate)
+    speaker_slice = arrange_result(predicted_labels, time_spec_rate)
 
     # Time map to origin wav (contains mute)
     for speaker, timestamps_list in speaker_slice.items():
@@ -221,19 +236,28 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
             print(s + ' --> ' + e)
 
-    p = PlotDiar(map=speaker_slice, wav=wav_path, gui=True, size=(25, 6))
-    p.draw()
-    p.plot.show()
+    true_map = read_true_map('./wavs/2/true.txt')
+
+    p = PlotDiar(true_map=true_map, map=speaker_slice, wav=wav_path, gui=True, size=(24, 6))
+    p.draw_true_map()
+    p.draw_map()
+    p.show()
+
+    def converter(map):
+        segments = []
+
+        for cluster in sorted(map.keys()):
+            for row in map[cluster]:
+                segments.append((str(cluster), row['start'] / 1000, row['stop'] / 1000))
+
+        segments.sort(key=lambda segment: segment[1])
+        return segments
+
+    ref = converter(speaker_slice)
+    hyp = converter(true_map)
+    error = simpleder.DER(ref, hyp)
+    print(f'DER = {round(error, 5) * 100}%')
 
 
 if __name__ == '__main__':
     main(args.audio, embedding_per_second=args.embedding_per_second, overlap_rate=args.overlap_rate)
-    """
-            for i in range(len(feats)):
-            for j in range(i, len(feats)):
-                print('Distance {:.4f} | {} and {}'.format(
-                    utils.distance(feats[i], feats[j]),
-                    utterance_speakers[i],
-                    utterance_speakers[j]
-                ))
-    """

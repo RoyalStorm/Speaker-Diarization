@@ -4,20 +4,11 @@ from __future__ import print_function
 import argparse
 import os
 import random
-import warnings
-
-warnings.filterwarnings(action='ignore')
-
-import tensorflow as tf
-from tensorflow.contrib.tensorboard.plugins import projector
-
-tf.logging.set_verbosity(tf.logging.ERROR)
 
 import librosa as lr
-import model
 import numpy as np
-import toolkits
-import utils
+
+from embedding import model, toolkits, utils
 
 parser = argparse.ArgumentParser()
 
@@ -25,7 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', default='', type=str)
 parser.add_argument('--resume', default=r'pre_trained/weights.h5', type=str)
 parser.add_argument('--data_path', default='D:/dataset/train', type=str)
-parser.add_argument('--epochs', default=1, type=int)
+parser.add_argument('--epochs', default=15, type=int)
 
 # Set up network configuration.
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
@@ -34,7 +25,7 @@ parser.add_argument('--vlad_cluster', default=8, type=int)
 parser.add_argument('--bottleneck_dim', default=512, type=int)
 parser.add_argument('--aggregation_mode', default='gvlad', choices=['avg', 'vlad', 'gvlad'], type=str)
 
-# Set up learning rate, training loss and optimizer.
+# Set up other params.
 parser.add_argument('--loss', default='softmax', choices=['softmax', 'amsoftmax'], type=str)
 parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 'extend'], type=str)
 parser.add_argument('--mode', default='test', choices=['train', 'test'], type=str)
@@ -142,29 +133,6 @@ def prepare_dataset(dataset_path):
     return list(zip(paths_list, speakers_labels_list))
 
 
-def visualize(feats, speaker_labels):
-    with open('./projections/metadata.tsv', 'w+') as metadata:
-        for i, label in enumerate(speaker_labels):
-            metadata.write('%s\n' % label)
-
-    sess = tf.InteractiveSession()
-
-    with tf.device("/cpu:0"):
-        embedding = tf.Variable(feats, trainable=False, name='embedding')
-        tf.global_variables_initializer().run()
-        saver = tf.train.Saver()
-        writer = tf.summary.FileWriter('projections', sess.graph)
-
-        config = projector.ProjectorConfig()
-        embed = config.embeddings.add()
-        embed.tensor_name = 'embedding'
-        embed.metadata_path = 'metadata.tsv'
-
-        projector.visualize_embeddings(writer, config)
-
-        saver.save(sess, 'projections/model.ckpt', global_step=feats.shape[0] - 1)
-
-
 def generate_embeddings():
     # GPU config
     toolkits.initialize_GPU(args)
@@ -187,9 +155,9 @@ def generate_embeddings():
     if args.resume:
         if os.path.isfile(args.resume):
             network_eval.load_weights(os.path.join(args.resume), by_name=True)
-            print('Successfully loading model {}.'.format(args.resume))
+            print(f'Successfully loading model {args.resume}')
         else:
-            raise IOError("No checkpoint found at '{}'".format(args.resume))
+            raise IOError(f'No checkpoint found at {args.resume}')
     else:
         raise IOError('Please type in the model to load')
 
@@ -219,10 +187,9 @@ def generate_embeddings():
         train_sequence.append(feats)
         train_cluster_id.append(utterance_speakers)
 
-        # visualize(feats, utterance_speakers)
+        # utils.visualize(feats, utterance_speakers, 'test')
 
-        print('Epoch:{}, utterance length: {}, speakers: {}'
-              .format(epoch, len(utterance_speakers), len(selected_speakers)))
+        print(f'Epoch:{epoch}, utterance length: {len(utterance_speakers)}, speakers: {len(selected_speakers)}')
 
     if args.mode == 'train':
         npz_name = 'training_data'
@@ -232,6 +199,5 @@ def generate_embeddings():
     np.savez('data/' + npz_name, train_sequence=train_sequence, train_cluster_id=train_cluster_id)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     generate_embeddings()
-    # tensorboard --logdir="projections" --port=8080
