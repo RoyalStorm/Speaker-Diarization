@@ -202,7 +202,7 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
     predicted_labels = utils.cluster_by_hdbscan(feats)
     # predicted_labels = utils.cluster_by_spectral(feats)
 
-    utils.visualize(feats, predicted_labels, 'real_world')
+    # utils.visualize(feats, predicted_labels, 'real_world')
 
     time_spec_rate = 1000 * (1.0 / embedding_per_second) * (1.0 - overlap_rate)  # speaker embedding every ?ms
     center_duration = int(1000 * (1.0 / embedding_per_second) // 2)
@@ -236,7 +236,7 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
             print(s + ' --> ' + e)
 
-    true_map = read_true_map('wavs/2/true.txt')
+    true_map = read_true_map('./wavs/2/true.txt')
 
     p = PlotDiar(true_map=true_map, map=speaker_slice, wav=wav_path, gui=True, size=(24, 6))
     p.draw_true_map()
