@@ -95,10 +95,10 @@ def cluster_by_dbscan(feats):
 
 
 def setup_knn(embeddings_pull, ground_truth_labels):
-    knn = KNeighborsClassifier(n_neighbors=10, weights='distance')
-    knn.fit(embeddings_pull, ground_truth_labels)
+    classifier = KNeighborsClassifier(n_neighbors=10, weights='distance')
+    classifier.fit(embeddings_pull, ground_truth_labels)
 
-    return knn
+    return classifier
 
 
 def cluster_by_hdbscan(feats):
@@ -122,7 +122,7 @@ def visualize(feats, speaker_labels, mode):
     else:
         raise TypeError('"mode" should be "real_world" or "test"')
 
-    with open(os.path.join(folder_path, 'metadata.tsv'), 'w+') as metadata:
+    with open(os.path.join(folder_path, 'metadata.tsv'), 'w') as metadata:
         for label in speaker_labels:
             if mode == 'real_world':
                 metadata.write(f'spk_{label}\n')
