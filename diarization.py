@@ -1,6 +1,7 @@
 """A demo script showing how to DIARIZATION ON WAV USING UIS-RNN."""
 
 import argparse
+import os
 from datetime import datetime
 
 import librosa
@@ -23,12 +24,12 @@ parser.add_argument('--vlad_cluster', default=8, type=int)
 parser.add_argument('--bottleneck_dim', default=512, type=int)
 parser.add_argument('--aggregation_mode', default='gvlad', choices=['avg', 'vlad', 'gvlad'], type=str)
 
-# Set up learning rate, training loss and optimizer
+# Set up training loss
 parser.add_argument('--loss', default='softmax', choices=['softmax', 'amsoftmax'], type=str)
 parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 'extend'], type=str)
 
 # Set up other configuration
-parser.add_argument('--audio', default='./wavs/2/rtk2.wav', type=str)
+parser.add_argument('--audio', default='./wavs/1/rtk1.wav', type=str)
 parser.add_argument('--embedding_per_second', default=1.8, type=float)
 parser.add_argument('--overlap_rate', default=0.4, type=float)
 
@@ -49,9 +50,7 @@ def append_2_dict(speaker_slice, spk_period):
 
 
 def arrange_result(labels, time_spec_rate):
-    # {'1': [{'start':10, 'stop':20}, {'start':30, 'stop':40}],
-    #  '2': [{'start':90, # 'stop':100}]}
-    last_label = labels[0]
+    last_label = labels[-1]
     speaker_slice = {}
     j = 0
 
@@ -167,6 +166,23 @@ def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, embeddi
     return utterances_spec, intervals
 
 
+def load_voices_pull(folder_path):
+    all_specs = []
+    voice_segments = {}
+
+    for spk_name in os.listdir(folder_path):
+        speaker_voices = os.path.join(folder_path, spk_name)
+
+        for voice in os.listdir(speaker_voices):
+            wav = os.path.join(speaker_voices, voice)
+
+            specs, _ = load_data(wav, embedding_per_second=args.embedding_per_second, overlap_rate=args.overlap_rate)
+            all_specs += specs
+
+        voice_segments[str(spk_name)] = all_specs
+    return voice_segments
+
+
 def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
     # GPU configuration
     toolkits.initialize_GPU(args)
@@ -194,18 +210,15 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
     for spec in specs:
         spec = np.expand_dims(np.expand_dims(spec, 0), -1)
         v = network_eval.predict(spec)
-        feats += [v]
+        feats.append(list(v))
 
     feats = np.array(feats)[:, 0, :].astype(float)  # [splits, embedding dim]
 
     predicted_labels = utils.cluster_by_hdbscan(feats)
-    knn = utils.setup_knn()
-    # predicted_labels = utils.cluster_by_spectral(feats)
 
     # utils.visualize(feats, predicted_labels, 'real_world')
 
     time_spec_rate = 1000 * (1.0 / embedding_per_second) * (1.0 - overlap_rate)  # speaker embedding every ?ms
-    center_duration = int(1000 * (1.0 / embedding_per_second) // 2)
     speaker_slice = arrange_result(predicted_labels, time_spec_rate)
 
     # Time map to origin wav (contains mute)
@@ -236,26 +249,27 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
             print(s + ' --> ' + e)
 
-    true_map = read_true_map('./wavs/2/true.txt')
+    true_map = read_true_map('./wavs/1/true.txt')
 
     p = PlotDiar(true_map=true_map, map=speaker_slice, wav=wav_path, gui=True, size=(24, 6))
     p.draw_true_map()
     p.draw_map()
     p.show()
 
-    def converter(map):
+    def convert(map):
         segments = []
 
         for cluster in sorted(map.keys()):
             for row in map[cluster]:
                 segments.append((str(cluster), row['start'] / 1000, row['stop'] / 1000))
 
-        segments.sort(key=lambda segment: segment[1])
+        segments.sort(key=lambda x: x[1])
         return segments
 
-    ref = converter(speaker_slice)
-    hyp = converter(true_map)
+    ref = convert(speaker_slice)
+    hyp = convert(true_map)
     error = simpleder.DER(ref, hyp)
+
     print(f'DER = {round(error, 5) * 100}%')
 
 
