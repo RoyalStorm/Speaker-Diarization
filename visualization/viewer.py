@@ -100,7 +100,8 @@ class PlotDiar:
             ax.set_xlim([0, self.max_x])
 
         ax.set_ylim([0, y])
-        ax.set_yticks(labels_position, labels)
+        ax.set_yticks(labels_position)
+        ax.set_yticklabels(labels)
         self.max_y = y
         self.end_play = self.max_x
 
