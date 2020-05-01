@@ -7,6 +7,7 @@ import numpy as np
 import tensorflow as tf
 import umap
 from sklearn.cluster import DBSCAN
+from sklearn.manifold import TSNE
 from sklearn.neighbors import KNeighborsClassifier
 from spectralcluster import SpectralClusterer
 from tensorboard.plugins import projector
@@ -62,11 +63,20 @@ def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, spec_le
 
 def umap_transformation(feats):
     return umap.UMAP(
-        n_neighbors=30,
+        n_neighbors=15,
         min_dist=0.0,
         n_components=2,
         random_state=42
     ).fit_transform(feats)
+
+
+def tsne_transformation(feats):
+    return TSNE(n_components=2,
+                perplexity=30,
+                learning_rate=250,
+                n_iter=3000,
+                n_iter_without_progress=500
+                ).fit_transform(feats)
 
 
 def cluster_by_spectral(feats):
@@ -102,16 +112,9 @@ def setup_knn(embeddings_pull, ground_truth_labels):
 
 
 def cluster_by_hdbscan(feats):
-    clusterable_embedding = umap_transformation(feats)
+    feats = umap_transformation(feats)
 
-    """standard_embedding = umap.UMAP(random_state=42).fit_transform(feats)
-    plt.scatter(standard_embedding[:, 0],
-                standard_embedding[:, 1],
-                c=labels,
-                s=1,
-                cmap='Spectral')"""
-
-    return hdbscan.HDBSCAN(min_samples=10).fit_predict(clusterable_embedding)
+    return hdbscan.HDBSCAN(min_samples=10).fit_predict(feats)
 
 
 def visualize(feats, speaker_labels, mode):
