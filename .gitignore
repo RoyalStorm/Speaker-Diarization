@@ -8,9 +8,7 @@ uisrnn.egg-info/*
 .coverage
 .idea
 
-embedding/data
-embedding/projections
+sample/plot.png
+sample/result.txt
 
-wavs
-
-history.txt
+tests/integration/fixtures

@@ -150,7 +150,7 @@ def generate_embeddings():
     }
 
     network_eval = model.vggvox_resnet2d_icassp(input_dim=vgg_params['dim'], num_class=vgg_params['n_classes'],
-                                                mode='eval', args=args)
+                                                mode='eval', params=args)
 
     if args.resume:
         if os.path.isfile(args.resume):

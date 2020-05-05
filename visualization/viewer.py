@@ -1,4 +1,8 @@
+import os
+
 import matplotlib.pyplot as plt
+
+from embedding import consts
 
 
 class PlotDiar:
@@ -35,7 +39,7 @@ class PlotDiar:
         self.timeline = self.ax.plot([0, 0], [0, 0], color='r')[-1]
 
         # Setup other params
-        self.segments_colors = ['#ffd740', '#00bcd4', '#00e676', '#9c27b0', '#ffff00', '#e91e63']
+        self.segments_colors = ['#ffd740', '#9c27b0', '#00bcd4', '#00e676', '#ffff00', '#e91e63']
 
         self.true_timestamps = []
         self.timestamps = []
@@ -57,6 +61,9 @@ class PlotDiar:
     def draw_map(self):
         self._draw_segments(self.ax, self.map, self.timestamps)
         self._draw_info(self.ax, 'Detected segments', 'Detected speakers', f'Detected diarization map for {self.wav}')
+
+    def save(self, name='plot'):
+        self.fig.savefig(os.path.join(consts.audio_folder, name))
 
     def show(self):
         self.plt.tight_layout()
