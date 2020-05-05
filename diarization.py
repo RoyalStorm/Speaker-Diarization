@@ -1,21 +1,18 @@
 """A demo script showing how to DIARIZATION ON WAV USING UIS-RNN."""
 
 import argparse
-import os
-from datetime import datetime
 
 import librosa
 import numpy as np
-import simpleder
 
-from embedding import utils, toolkits, model
+from embedding import utils, new_utils, toolkits, model
 from visualization.viewer import PlotDiar
 
 parser = argparse.ArgumentParser()
 
 # Set up training configuration
 parser.add_argument('--gpu', default='', type=str)
-parser.add_argument('--resume', default=r'embedding/pre_trained/weights.h5', type=str)
+parser.add_argument('--resume', default=r'./embedding/pre_trained/weights.h5', type=str)
 
 # Set up network configuration
 parser.add_argument('--net', default='resnet34s', choices=['resnet34s', 'resnet34l'], type=str)
@@ -29,7 +26,7 @@ parser.add_argument('--loss', default='softmax', choices=['softmax', 'amsoftmax'
 parser.add_argument('--test_type', default='normal', choices=['normal', 'hard', 'extend'], type=str)
 
 # Set up other configuration
-parser.add_argument('--audio', default='./wavs/1/rtk1.wav', type=str)
+parser.add_argument('--audio', default='./sample/sample.wav', type=str)
 parser.add_argument('--embedding_per_second', default=1.8, type=float)
 parser.add_argument('--overlap_rate', default=0.4, type=float)
 
@@ -80,31 +77,6 @@ def gen_map(intervals):  # interval slices to map table
     keys = [k for k, _ in map_table.items()]
     keys.sort()
     return map_table, keys
-
-
-def read_true_map(path):
-    with open(path, 'r') as file:
-        spk_number = 0
-        true_map = {spk_number: []}
-
-        def empty(line):
-            return line in ['\n', '\r\n']
-
-        for line in file:
-            if empty(line):
-                spk_number += 1
-                true_map[spk_number] = []
-            else:
-                start, stop = line.split(' ')[0], line.split(' ')[1].replace('\n', '')
-                dt_start = datetime.strptime(start, '%M:%S.%f')
-                dt_stop = datetime.strptime(stop, '%M:%S.%f')
-
-                start = dt_start.minute * 60_000 + dt_start.second * 1_000 + dt_start.microsecond / 1_000
-                stop = dt_stop.minute * 60_000 + dt_stop.second * 1_000 + dt_stop.microsecond / 1_000
-
-                true_map[spk_number].append({'start': start, 'stop': stop})
-
-    return true_map
 
 
 def beautify_time(time_in_milliseconds):
@@ -166,26 +138,9 @@ def load_data(path, win_length=400, sr=16000, hop_length=160, n_fft=512, embeddi
     return utterances_spec, intervals
 
 
-def load_voices_pull(folder_path):
-    all_specs = []
-    voice_segments = {}
-
-    for spk_name in os.listdir(folder_path):
-        speaker_voices = os.path.join(folder_path, spk_name)
-
-        for voice in os.listdir(speaker_voices):
-            wav = os.path.join(speaker_voices, voice)
-
-            specs, _ = load_data(wav, embedding_per_second=args.embedding_per_second, overlap_rate=args.overlap_rate)
-            all_specs += specs
-
-        voice_segments[str(spk_name)] = all_specs
-    return voice_segments
-
-
 def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
     # GPU configuration
-    toolkits.initialize_GPU(args)
+    toolkits.initialize_GPU(args.gpu)
 
     params = {
         'dim': (257, None, 1),
@@ -200,7 +155,7 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
     network_eval = model.vggvox_resnet2d_icassp(input_dim=params['dim'],
                                                 num_class=params['n_classes'],
-                                                mode='eval', args=args)
+                                                mode='eval', params=args)
     network_eval.load_weights(args.resume, by_name=True)
 
     specs, intervals = load_data(wav_path, embedding_per_second=embedding_per_second, overlap_rate=overlap_rate)
@@ -249,28 +204,14 @@ def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
 
             print(s + ' --> ' + e)
 
-    true_map = read_true_map('./wavs/1/true.txt')
+    ground_true_map = new_utils.ground_truth_map('./sample')
 
-    p = PlotDiar(true_map=true_map, map=speaker_slice, wav=wav_path, gui=True, size=(24, 6))
-    p.draw_true_map()
-    p.draw_map()
-    p.show()
+    plot = PlotDiar(true_map=ground_true_map, map=speaker_slice, wav=wav_path, gui=True, size=(24, 6))
+    plot.draw_true_map()
+    plot.draw_map()
+    plot.show()
 
-    def convert(map):
-        segments = []
-
-        for cluster in sorted(map.keys()):
-            for row in map[cluster]:
-                segments.append((str(cluster), row['start'] / 1000, row['stop'] / 1000))
-
-        segments.sort(key=lambda x: x[1])
-        return segments
-
-    ref = convert(speaker_slice)
-    hyp = convert(true_map)
-    error = simpleder.DER(ref, hyp)
-
-    print(f'DER = {round(error, 5) * 100}%')
+    print(new_utils.der(ground_true_map, speaker_slice) * 100)
 
 
 if __name__ == '__main__':

@@ -3,10 +3,10 @@ import os
 import numpy as np
 
 
-def initialize_GPU(args):
+def initialize_GPU(gpu):
     # Initialize GPUs
     import tensorflow as tf
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    os.environ["CUDA_VISIBLE_DEVICES"] = gpu
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     session = tf.Session(config=config)
