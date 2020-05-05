@@ -28,7 +28,7 @@ def _append_2_dict(speaker_slice, spk_period):
 
 
 def _arrange_result(labels, time_spec_rate):
-    last_label = labels[-1]
+    last_label = labels[0]
     speaker_slice = {}
     j = 0
 

@@ -18,26 +18,26 @@ All segments will be saved in `*.txt` file in folder with audio (by default, it'
 
 ```
 0
-0:00.896 --> 0:06.160
+0:00.896 --> 0:06.16
 0:07.323 --> 0:08.816
 0:10.795 --> 0:14.448
 0:20.501 --> 0:23.603
 1:41.906 --> 1:43.648
 1:46.538 --> 1:56.624
 2:08.846 --> 2:10.422
-2:18.452 --> 2:19.740
+2:18.452 --> 2:19.74
 2:26.274 --> 2:37.370
 2:38.100 --> 2:41.682
 
 1
-0:06.160 --> 0:07.323
+0:06.16 --> 0:07.323
 0:08.816 --> 0:10.795
 0:14.448 --> 0:20.501
 0:23.603 --> 1:41.906
 1:43.648 --> 1:46.538
 1:56.624 --> 2:08.846
 2:10.422 --> 2:18.452
-2:19.740 --> 2:26.274
+2:19.74 --> 2:26.274
 2:37.370 --> 2:38.100
 
 0.08735
@@ -116,7 +116,7 @@ new_utils.save_and_report(plot, result_map, der)
  
 #### TensorBoard
 
-For TensorBoard embeddings visualization run `visualize()` function in `run_me.py` script. 
+For TensorBoard embeddings visualization run `visualize()` function in `diarization.py` script. 
  
 <div align="center">
   <img src="assets/tensorboard.png" alt="tensorboard">
