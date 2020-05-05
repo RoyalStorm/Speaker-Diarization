@@ -40,7 +40,7 @@ nn_params.input_dim = (257, None, 1)
 nn_params.num_classes = 5994
 
 nn_params.mode = 'eval'  # 'train'
-nn_params.gpu = ''
+nn_params.gpu = '0'
 nn_params.net = 'resnet34s'  # 'resnet34s' or 'resnet34l'
 nn_params.ghost_cluster = 2
 nn_params.vlad_cluster = 8

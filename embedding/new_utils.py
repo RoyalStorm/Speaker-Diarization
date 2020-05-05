@@ -157,8 +157,6 @@ def result_map(map_table, keys, predicted_labels):
 
     # Time map to origin wav (contains mute)
     for speaker, timestamps_list in speaker_slice.items():
-        print('========= ' + str(speaker) + ' =========')
-
         for timestamp_id, timestamp in enumerate(timestamps_list):
             s = 0
             e = 0
@@ -177,11 +175,6 @@ def result_map(map_table, keys, predicted_labels):
 
             speaker_slice[speaker][timestamp_id]['start'] = s
             speaker_slice[speaker][timestamp_id]['stop'] = e
-
-            s = _beautify_time(timestamp['start'])  # Change point moves to the center of the slice
-            e = _beautify_time(timestamp['stop'])
-
-            print(s + ' --> ' + e)
 
     return speaker_slice
 
