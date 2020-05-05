@@ -78,7 +78,6 @@ class PlotDiar:
         labels_position = []
         labels = []
         y = 0
-        self.max_x = 0
         self.max_y = 0
 
         for i, cluster in enumerate(sorted(map.keys())):
