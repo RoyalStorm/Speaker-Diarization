@@ -31,9 +31,8 @@ predicted_labels = cluster_utils.cluster_by_hdbscan(embeddings)
 # Step 8. Read real segments from file.
 ground_truth_map = new_utils.ground_truth_map(consts.audio_folder)
 
-# Step 9. Get result timestamps.
-map_table, keys = new_utils.gen_map(intervals)
-result_map = new_utils.result_map(map_table, keys, predicted_labels)
+# Step 9. Get result segments.
+result_map = new_utils.result_map(intervals, predicted_labels)
 
 # Step 10. Get DER (diarization error rate).
 der = new_utils.der(ground_truth_map, result_map)

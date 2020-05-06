@@ -55,6 +55,20 @@ def _beautify_time(time_in_milliseconds):
     return time
 
 
+def _gen_map(intervals):  # interval slices to map table
+    slice_len = [sliced[1] - sliced[0] for sliced in intervals.tolist()]
+    map_table = {}  # vad erased time to origin time, only split points
+    idx = 0
+
+    for i, sliced in enumerate(intervals.tolist()):
+        map_table[idx] = sliced[0]
+        idx += slice_len[i]
+
+    map_table[sum(slice_len)] = intervals[-1, -1]
+
+    return map_table
+
+
 def _path_to_audio(audio_folder):
     for file in os.listdir(audio_folder):
         if file.endswith('.wav'):
@@ -80,23 +94,6 @@ def der(ground_truth_map, result_map):
     der = simpleder.DER(ground_truth_map, result_map)
 
     return round(der, 5)
-
-
-def gen_map(intervals):  # interval slices to map table
-    slice_len = [sliced[1] - sliced[0] for sliced in intervals.tolist()]
-    map_table = {}  # vad erased time to origin time, only split points
-    idx = 0
-
-    for i, sliced in enumerate(intervals.tolist()):
-        map_table[idx] = sliced[0]
-        idx += slice_len[i]
-
-    map_table[sum(slice_len)] = intervals[-1, -1]
-
-    keys = [k for k, _ in map_table.items()]
-    keys.sort()
-
-    return map_table, keys
 
 
 def generate_embeddings(model, specs):
@@ -150,10 +147,13 @@ def ground_truth_map(audio_folder):
     return ground_truth_map
 
 
-def result_map(map_table, keys, predicted_labels):
+def result_map(intervals, predicted_labels):
     time_spec_rate = 1000 * (1.0 / consts.slide_window_params.embedding_per_second) * (
             1.0 - consts.slide_window_params.overlap_rate)  # speaker embedding every ?ms
     speaker_slice = _arrange_result(predicted_labels, time_spec_rate)
+
+    map_table = _gen_map(intervals)
+    keys = [*map_table]
 
     # Time map to origin wav (contains mute)
     for speaker, timestamps_list in speaker_slice.items():
