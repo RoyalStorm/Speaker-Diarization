@@ -14,7 +14,7 @@ and cluster them by `HDBSCAN`.
   <img src="assets/plot.png" alt="plot">
 </div>
 
-All segments will be saved in `*.txt` file in folder with audio (by default, it's `./sample`):
+All segments will be saved in `ground_truth.txt` file in folder with audio (by default, it's `./sample`):
 
 ```
 0
