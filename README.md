@@ -127,9 +127,9 @@ Coming soon ...
 
 ## Future works and research
 
+ - Silence removal
  - Add KNN classifier for partial identification
  - Configure params for t-SNE/UMAP and HDBSCAN
- - Remove silence from plot
  - Change embeddings module to DeepSpeaker | [Source](https://github.com/philipperemy/deep-speaker)
  - Replace diarization part on some NN or train this version of UIS-RNN | [Source](https://github.com/DonkeyShot21/uis-rnn-sml)
 

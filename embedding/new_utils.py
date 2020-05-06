@@ -14,9 +14,8 @@ from tensorflow.compat.v1.train import Saver
 from embedding import consts
 
 
-def _append_2_dict(speaker_slice, spk_period):
-    key = list(spk_period.keys())[0]
-    value = list(spk_period.values())[0]
+def _append_2_dict(speaker_slice, segment):
+    key, value = list(segment.items())[0]
     time_dict = {'start': int(value[0] + 0.5), 'stop': int(value[1] + 0.5)}
 
     if key in speaker_slice:
@@ -27,12 +26,12 @@ def _append_2_dict(speaker_slice, spk_period):
     return speaker_slice
 
 
-def _arrange_result(labels, time_spec_rate):
-    last_label = labels[0]
+def _arrange_result(predicted_labels, time_spec_rate):
+    last_label = predicted_labels[0]
     speaker_slice = {}
     j = 0
 
-    for i, label in enumerate(labels):
+    for i, label in enumerate(predicted_labels):
         if label == last_label:
             continue
 
@@ -40,7 +39,8 @@ def _arrange_result(labels, time_spec_rate):
         j = i
         last_label = label
 
-    speaker_slice = _append_2_dict(speaker_slice, {last_label: (time_spec_rate * j, time_spec_rate * (len(labels)))})
+    speaker_slice = _append_2_dict(speaker_slice,
+                                   {last_label: (time_spec_rate * j, time_spec_rate * (len(predicted_labels)))})
 
     return speaker_slice
 
@@ -75,6 +75,17 @@ def _path_to_audio(audio_folder):
             return os.path.join(audio_folder, file)
 
     raise FileExistsError(f'Folder "{audio_folder}" not contains *.wav file')
+
+
+def _vad(audio_path, sr):
+    audio, _ = librosa.load(audio_path, sr=sr)
+    intervals = librosa.effects.split(audio, top_db=20)
+    audio_output = []
+
+    for sliced in intervals:
+        audio_output.extend(audio[sliced[0]:sliced[1]])
+
+    return np.array(audio_output), (intervals / sr * 1000).astype(int)
 
 
 def der(ground_truth_map, result_map):
@@ -148,8 +159,10 @@ def ground_truth_map(audio_folder):
 
 
 def result_map(intervals, predicted_labels):
-    time_spec_rate = 1000 * (1.0 / consts.slide_window_params.embedding_per_second) * (
-            1.0 - consts.slide_window_params.overlap_rate)  # speaker embedding every ?ms
+    # Speaker embedding every ? ms
+    time_spec_rate = 1_000 * (1.0 / consts.slide_window_params.embedding_per_second) * (
+            1.0 - consts.slide_window_params.overlap_rate)
+
     speaker_slice = _arrange_result(predicted_labels, time_spec_rate)
 
     map_table = _gen_map(intervals)
@@ -199,17 +212,7 @@ def save_and_report(plot, result_map, der, audio_folder=consts.audio_folder):
 
 def slide_window(audio_folder, win_length=400, sr=16000, hop_length=160, n_fft=512, embedding_per_second=0.5,
                  overlap_rate=0.5):
-    def vad(audio_path, sr):
-        audio, _ = librosa.load(audio_path, sr=sr)
-        intervals = librosa.effects.split(audio, top_db=20)
-        audio_output = []
-
-        for sliced in intervals:
-            audio_output.extend(audio[sliced[0]:sliced[1]])
-
-        return np.array(audio_output), (intervals / sr * 1000).astype(int)
-
-    wav, intervals = vad(_path_to_audio(audio_folder), sr=sr)
+    wav, intervals = _vad(_path_to_audio(audio_folder), sr=sr)
     linear_spectogram = linear_spectogram_from_wav(wav, hop_length, win_length, n_fft)
     mag, _ = librosa.magphase(linear_spectogram)  # magnitude
     mag_T = mag.T

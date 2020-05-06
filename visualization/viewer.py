@@ -65,7 +65,7 @@ class PlotDiar:
         y = 0
         self.max_y = 0
 
-        for i, cluster in enumerate(map.keys()):
+        for i, cluster in enumerate(sorted(map.keys())):
             labels.append(cluster)
             labels_position.append(y + self.height // 2)
 
