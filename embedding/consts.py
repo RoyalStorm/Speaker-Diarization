@@ -1,6 +1,3 @@
-import os
-
-
 class Params(dict):
     def __getattr__(self, item):
         return self[item]
@@ -9,15 +6,13 @@ class Params(dict):
         self[key] = value
 
 
-# Contains *.wav file and *.txt file with ground truth map
-audio_folder = './sample'
-
-# TensorBoard data
-projections_folder = os.path.join(audio_folder, 'projections')
+# Contains *.wav file and ground_truth.txt file with true map
+audio_dir = './sample'
 
 # File name with ground truth map
 ground_truth_map_file = 'ground_truth.txt'
-
+# Log file name
+log_file = 'log.txt'
 # File name with ground result map
 result_map_file = 'result.txt'
 

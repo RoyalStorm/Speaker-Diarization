@@ -169,32 +169,36 @@ def result_map(intervals, predicted_labels):
     keys = [*map_table]
 
     # Time map to origin wav (contains mute)
-    for speaker, timestamps_list in speaker_slice.items():
-        for timestamp_id, timestamp in enumerate(timestamps_list):
+    for speaker, timestamps_list in sorted(speaker_slice.items()):
+        for i, timestamp in enumerate(timestamps_list):
             s = 0
             e = 0
 
-            for i, key in enumerate(keys):
+            for j, key in enumerate(keys):
                 if s != 0 and e != 0:
                     break
 
                 if s == 0 and key > timestamp['start']:
-                    offset = timestamp['start'] - keys[i - 1]
-                    s = map_table[keys[i - 1]] + offset
+                    offset = timestamp['start'] - keys[j - 1]
+                    s = map_table[keys[j - 1]] + offset
 
                 if e == 0 and key > timestamp['stop']:
-                    offset = timestamp['stop'] - keys[i - 1]
-                    e = map_table[keys[i - 1]] + offset
+                    offset = timestamp['stop'] - keys[j - 1]
+                    e = map_table[keys[j - 1]] + offset
 
-            speaker_slice[speaker][timestamp_id]['start'] = s
-            speaker_slice[speaker][timestamp_id]['stop'] = e
+            speaker_slice[speaker][i]['start'] = s
+            speaker_slice[speaker][i]['stop'] = e
 
     return speaker_slice
 
 
-def save_and_report(plot, result_map, der, audio_folder=consts.audio_folder):
-    with open(os.path.join(audio_folder, consts.result_map_file), 'w') as file:
-        plot.save()
+def save_and_report(plot, result_map, der, dir=consts.audio_dir):
+    checkpoint_dir = os.path.join(dir, f'{datetime.now():%Y%m%dT%H%M%S}')
+
+    os.mkdir(checkpoint_dir)
+
+    with open(os.path.join(checkpoint_dir, consts.result_map_file), 'w') as file:
+        plot.save(checkpoint_dir)
 
         for i, cluster in enumerate(sorted(result_map.keys())):
             if i != 0:
@@ -207,7 +211,7 @@ def save_and_report(plot, result_map, der, audio_folder=consts.audio_folder):
 
         file.write(f'\n{der}')
 
-        print(f'Diarization done. All results saved in {audio_folder}.')
+        print(f'Diarization done. All results saved in {checkpoint_dir}.')
 
 
 def slide_window(audio_folder, win_length=400, sr=16000, hop_length=160, n_fft=512, embedding_per_second=0.5,
@@ -242,8 +246,8 @@ def slide_window(audio_folder, win_length=400, sr=16000, hop_length=160, n_fft=5
     return utterances_spec, intervals
 
 
-def visualize(embeddings, labels):
-    with open(os.path.join(consts.projections_folder, 'metadata.tsv', 'w')) as metadata:
+def visualize(embeddings, labels, dir):
+    with open(os.path.join(dir, 'metadata.tsv', 'w')) as metadata:
         for label in labels:
             metadata.write(f'speaker_{label}\n')
 
@@ -253,13 +257,13 @@ def visualize(embeddings, labels):
         embedding = tf.Variable(embeddings, trainable=False, name='diarization')
         global_variables_initializer().run()
         saver = Saver()
-        writer = FileWriter(consts.projections_folder, sess.graph)
+        writer = FileWriter(dir, sess.graph)
 
         config = projector.ProjectorConfig()
         embed = config.embeddings.add()
         embed.tensor_name = 'embedding'
-        embed.metadata_path = os.path.join(consts.projections_folder, 'metadata.tsv')
+        embed.metadata_path = os.path.join(dir, 'metadata.tsv')
 
         projector.visualize_embeddings(writer, config)
 
-        saver.save(sess, os.path.join(consts.projections_folder, 'model.ckpt'))
+        saver.save(sess, os.path.join(dir, 'model.ckpt'))

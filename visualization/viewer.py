@@ -112,8 +112,8 @@ class PlotDiar:
         self._draw_segments(self.ax, self.map, self.timestamps)
         self._draw_info(self.ax, 'Detected segments', 'Detected speakers', f'Detected diarization map for {self.wav}')
 
-    def save(self, name='plot'):
-        self.fig.savefig(os.path.join(consts.audio_folder, name))
+    def save(self, dir, plot_name='plot'):
+        self.fig.savefig(os.path.join(dir, plot_name))
 
     def show(self):
         self.plt.tight_layout()

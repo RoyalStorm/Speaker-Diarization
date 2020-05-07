@@ -8,7 +8,6 @@ uisrnn.egg-info/*
 .coverage
 .idea
 
-sample/plot.png
-sample/result.txt
+sample/
 
 tests/integration/fixtures

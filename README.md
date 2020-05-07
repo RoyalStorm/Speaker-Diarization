@@ -78,7 +78,7 @@ model = model.vggvox_resnet2d_icassp(input_dim=consts.nn_params.input_dim,
 model.load_weights(consts.nn_params.weights, by_name=True)
 
 # Step 3. Now we need to apply slide window to selected audio.
-specs, intervals = new_utils.slide_window(audio_folder=consts.audio_folder,
+specs, intervals = new_utils.slide_window(audio_folder=consts.audio_dir,
                                           embedding_per_second=consts.slide_window_params.embedding_per_second,
                                           overlap_rate=consts.slide_window_params.overlap_rate)
 
@@ -95,7 +95,7 @@ predicted_labels = cluster_utils.cluster_by_hdbscan(embeddings)
 # new_utils.visualize(embeddings, predicted_label)
 
 # Step 8. Read real segments from file.
-ground_truth_map = new_utils.ground_truth_map(consts.audio_folder)
+ground_truth_map = new_utils.ground_truth_map(consts.audio_dir)
 
 # Step 9. Get result segments.
 result_map = new_utils.result_map(intervals, predicted_labels)
@@ -104,7 +104,7 @@ result_map = new_utils.result_map(intervals, predicted_labels)
 der = new_utils.der(ground_truth_map, result_map)
 
 # Step 11. And now we can show both plots (ground truth and result).
-plot = PlotDiar(true_map=ground_truth_map, map=result_map, wav=consts.audio_folder, gui=True, size=(24, 6))
+plot = PlotDiar(true_map=ground_truth_map, map=result_map, wav=consts.audio_dir, gui=True, size=(24, 6))
 plot.draw_true_map()
 plot.draw_map()
 plot.show()
