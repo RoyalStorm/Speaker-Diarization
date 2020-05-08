@@ -120,12 +120,6 @@ def generate_embeddings(model, specs):
     return embeddings
 
 
-def linear_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
-    linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
-
-    return linear.T
-
-
 def ground_truth_map(audio_folder):
     ground_truth_map_file = None
 
@@ -156,6 +150,12 @@ def ground_truth_map(audio_folder):
                 ground_truth_map[spk_number].append({'start': start, 'stop': stop})
 
     return ground_truth_map
+
+
+def linear_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
+    linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
+
+    return linear.T
 
 
 def result_map(intervals, predicted_labels):
@@ -192,26 +192,52 @@ def result_map(intervals, predicted_labels):
     return speaker_slice
 
 
-def save_and_report(plot, result_map, der, dir=consts.audio_dir):
+def save_and_report(plot, result_map, der, dim_reduce_params, cluster_params, dir=consts.audio_dir):
+    # Make checkpoint
     checkpoint_dir = os.path.join(dir, f'{datetime.now():%Y%m%dT%H%M%S}')
-
     os.mkdir(checkpoint_dir)
 
-    with open(os.path.join(checkpoint_dir, consts.result_map_file), 'w') as file:
+    # Write result segments and DER in file
+    with open(os.path.join(checkpoint_dir, consts.result_map_file), 'w') as result:
         plot.save(checkpoint_dir)
 
         for i, cluster in enumerate(sorted(result_map.keys())):
             if i != 0:
-                file.write('\n')
+                result.write('\n')
 
-            file.write(f'{cluster}\n')
+            result.write(f'{cluster}\n')
 
             for segment in result_map[cluster]:
-                file.write(f'{_beautify_time(segment["start"])} --> {_beautify_time(segment["stop"])}\n')
+                result.write(f'{_beautify_time(segment["start"])} --> {_beautify_time(segment["stop"])}\n')
 
-        file.write(f'\n{der}')
+        result.write(f'\n{der}')
 
-        print(f'Diarization done. All results saved in {checkpoint_dir}.')
+    # Write logs with testing params
+    with open(os.path.join(checkpoint_dir, consts.log_file), 'w') as log:
+        log.write(f'Dimension reduce by: {dim_reduce_params.name}\n')
+
+        if dim_reduce_params.name == 'UMAP':
+            log.write(f'    n_components = {dim_reduce_params.n_components}\n')
+            log.write(f'    n_neighbors = {dim_reduce_params.n_neighbors}\n')
+        elif dim_reduce_params.name == 't-SNE':
+            log.write(f'    n_components = {dim_reduce_params.n_components}\n')
+            log.write(f'    n_iter = {dim_reduce_params.n_iter}\n')
+            log.write(f'    learning_rate = {dim_reduce_params.learning_rate}\n')
+            log.write(f'    perplexity = {dim_reduce_params.perplexity}\n')
+
+        log.write(f'Clustering type by: {cluster_params.name}\n')
+
+        if cluster_params.name == 'HDBSCAN':
+            log.write(f'    min_cluster_size = {cluster_params.min_cluster_size}\n')
+            log.write(f'    min_samples = {cluster_params.min_samples}\n')
+        elif cluster_params.name == 'DBSCAN':
+            log.write(f'    eps = {cluster_params.eps}\n')
+            log.write(f'    min_samples = {cluster_params.min_samples}\n')
+
+        log.write(f'Embedding per second: {consts.slide_window_params.embedding_per_second}\n')
+        log.write(f'Overlap rate: {consts.slide_window_params.overlap_rate}')
+
+    print(f'Diarization done. All results saved in {checkpoint_dir}.')
 
 
 def slide_window(audio_folder, win_length=400, sr=16000, hop_length=160, n_fft=512, embedding_per_second=0.5,

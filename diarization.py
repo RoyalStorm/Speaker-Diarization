@@ -28,4 +28,8 @@ plot.draw_true_map()
 plot.draw_map()
 plot.show()
 
-new_utils.save_and_report(plot, result_map, der)
+new_utils.save_and_report(plot=plot,
+                          result_map=result_map,
+                          dim_reduce_params=consts.umap_params,
+                          cluster_params=consts.hdbscan_params,
+                          der=der)

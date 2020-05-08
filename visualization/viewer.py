@@ -2,8 +2,6 @@ import os
 
 import matplotlib.pyplot as plt
 
-from embedding import consts
-
 
 class PlotDiar:
     """
