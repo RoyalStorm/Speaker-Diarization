@@ -12,6 +12,7 @@ from tensorflow.compat.v1.summary import FileWriter
 from tensorflow.compat.v1.train import Saver
 
 from embedding import consts
+from embedding.consts import model
 
 
 def _append_2_dict(speaker_slice, segment):
@@ -69,12 +70,17 @@ def _gen_map(intervals):  # interval slices to map table
     return map_table
 
 
-def _path_to_audio(audio_folder):
+def _get_audio(audio_folder):
+    wavs = []
+
     for file in os.listdir(audio_folder):
         if file.endswith('.wav'):
-            return os.path.join(audio_folder, file)
+            wavs.append(os.path.join(audio_folder, file))
 
-    raise FileExistsError(f'Folder "{audio_folder}" not contains *.wav file')
+    if wavs is not None:
+        return wavs
+    else:
+        raise FileExistsError(f'Folder "{audio_folder}" not contains *.wav file')
 
 
 def _vad(audio_path, sr):
@@ -100,14 +106,12 @@ def der(ground_truth_map, result_map):
 
         return segments
 
-    ground_truth_map = convert(ground_truth_map)
-    result_map = convert(result_map)
-    der = simpleder.DER(ground_truth_map, result_map)
+    der = simpleder.DER(convert(ground_truth_map), convert(result_map))
 
     return round(der, 5)
 
 
-def generate_embeddings(model, specs):
+def generate_embeddings(specs):
     embeddings = []
 
     for spec in specs:
@@ -156,6 +160,26 @@ def linear_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
     linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
 
     return linear.T
+
+
+def load_voices_pull(dir):
+    true_labels = []
+    voices_pull_embeddings = []
+
+    for speaker in os.listdir(dir):
+        wavs = _get_audio(os.path.join(dir, speaker))
+
+        all_specs = []
+        for wav in wavs:
+            specs, _ = slide_window(audio_path=wav,
+                                    embedding_per_second=consts.slide_window_params.embedding_per_second,
+                                    overlap_rate=consts.slide_window_params.overlap_rate)
+            all_specs.extend(specs)
+
+        voices_pull_embeddings.extend(generate_embeddings(all_specs))
+        true_labels.extend([speaker for _ in range(len(all_specs))])
+
+    return np.array(voices_pull_embeddings), true_labels
 
 
 def result_map(intervals, predicted_labels):
@@ -240,9 +264,9 @@ def save_and_report(plot, result_map, der, dim_reduce_params, cluster_params, di
     print(f'Diarization done. All results saved in {checkpoint_dir}.')
 
 
-def slide_window(audio_folder, win_length=400, sr=16000, hop_length=160, n_fft=512, embedding_per_second=0.5,
+def slide_window(audio_path, win_length=400, sr=16000, hop_length=160, n_fft=512, embedding_per_second=0.5,
                  overlap_rate=0.5):
-    wav, intervals = _vad(_path_to_audio(audio_folder), sr=sr)
+    wav, intervals = _vad(audio_path, sr=sr)
     linear_spectogram = linear_spectogram_from_wav(wav, hop_length, win_length, n_fft)
     mag, _ = librosa.magphase(linear_spectogram)  # magnitude
     mag_T = mag.T

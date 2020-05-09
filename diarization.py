@@ -1,22 +1,22 @@
-from embedding import cluster_utils, model, consts, new_utils, toolkits
+from embedding import cluster_utils, consts, new_utils, toolkits
 from visualization.viewer import PlotDiar
 
 toolkits.initialize_GPU(consts.nn_params.gpu)
 
-model = model.vggvox_resnet2d_icassp(input_dim=consts.nn_params.input_dim,
-                                     num_class=consts.nn_params.num_classes,
-                                     mode=consts.nn_params.mode,
-                                     params=consts.nn_params)
-model.load_weights(consts.nn_params.weights, by_name=True)
-
-specs, intervals = new_utils.slide_window(audio_folder=consts.audio_dir,
+wav = new_utils._get_audio(consts.audio_dir)
+specs, intervals = new_utils.slide_window(audio_path=wav[0],
                                           embedding_per_second=consts.slide_window_params.embedding_per_second,
                                           overlap_rate=consts.slide_window_params.overlap_rate)
 
-embeddings = new_utils.generate_embeddings(model, specs)
+embeddings = new_utils.generate_embeddings(specs)
 embeddings = cluster_utils.umap_transform(embeddings)
 
 predicted_labels = cluster_utils.cluster_by_hdbscan(embeddings)
+
+"""voices_pull_embeddings, true_labels = new_utils.load_voices_pull(consts.pull_dir)
+voices_pull_embeddings = cluster_utils.umap_transform(voices_pull_embeddings)
+classifier = cluster_utils.setup_knn(voices_pull_embeddings, true_labels)
+identified_speakers = cluster_utils.identify_speakers(classifier, embeddings, predicted_labels)"""
 
 ground_truth_map = new_utils.ground_truth_map(consts.audio_dir)
 result_map = new_utils.result_map(intervals, predicted_labels)

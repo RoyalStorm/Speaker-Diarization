@@ -1,3 +1,4 @@
+import numpy as np
 from hdbscan import HDBSCAN
 from sklearn.cluster import DBSCAN
 from sklearn.manifold import TSNE
@@ -10,10 +11,10 @@ from embedding import consts
 
 def umap_transform(embeddings,
                    n_components=consts.umap_params.n_components,
-                   n_neighbors=consts.umap_params.n_neighbors
-                   ):
+                   n_neighbors=consts.umap_params.n_neighbors):
     return UMAP(
         n_components=n_components,
+        metric='cosine',
         n_neighbors=n_neighbors,
         min_dist=0.0,
         random_state=42
@@ -24,10 +25,10 @@ def tsne_transform(embeddings,
                    n_components=consts.tsne_params.n_components,
                    n_iter=consts.tsne_params.n_iter,
                    learning_rate=consts.tsne_params.learning_rate,
-                   perplexity=consts.tsne_params.perplexity
-                   ):
+                   perplexity=consts.tsne_params.perplexity):
     return TSNE(n_components=n_components,
                 n_iter=n_iter,
+                metric='cosine',
                 learning_rate=learning_rate,
                 perplexity=perplexity
                 ).fit_transform(embeddings)
@@ -35,8 +36,7 @@ def tsne_transform(embeddings,
 
 def cluster_by_hdbscan(embeddings,
                        min_cluster_size=consts.hdbscan_params.min_cluster_size,
-                       min_samples=consts.hdbscan_params.min_samples
-                       ):
+                       min_samples=consts.hdbscan_params.min_samples):
     return HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples).fit_predict(embeddings)
 
 
@@ -50,8 +50,27 @@ def cluster_by_spectral(embeddings):
     return SpectralClusterer(p_percentile=0.95, gaussian_blur_sigma=1).predict(embeddings)
 
 
-def setup_knn(embeddings_pull, ground_truth_labels, n_neighbors=10):
+def setup_knn(embeddings_pull, ground_truth_labels, n_neighbors=15):
     classifier = KNeighborsClassifier(n_neighbors=n_neighbors, weights='distance')
     classifier.fit(embeddings_pull, ground_truth_labels)
 
     return classifier
+
+
+def identify_speakers(classifier, embeddings, predicted_labels):
+    clusters = list(np.unique(predicted_labels))
+
+    identified_speakers = dict.fromkeys(clusters)
+
+    for cluster in identified_speakers.keys():
+        indexes = np.where(np.array(predicted_labels) == cluster)[0]
+
+        selected_embeddings = []
+        for i in indexes:
+            selected_embeddings.append(embeddings[i])
+
+        selected_embeddings = np.array(selected_embeddings)
+
+        neigh_dist, neigh_ind = classifier.kneighbors(selected_embeddings, return_distance=True)
+
+    return identified_speakers

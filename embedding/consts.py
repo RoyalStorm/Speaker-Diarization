@@ -1,3 +1,6 @@
+from embedding import model
+
+
 class Params(dict):
     def __getattr__(self, item):
         return self[item]
@@ -8,6 +11,9 @@ class Params(dict):
 
 # Contains *.wav file and ground_truth.txt file with true map
 audio_dir = './sample'
+
+# Voices pull dir
+voices_pull_dir = './tests/integration/fixtures/rtk/_voices_pull'
 
 # File name with ground truth map
 ground_truth_map_file = 'ground_truth.txt'
@@ -70,3 +76,9 @@ nn_params.aggregation_mode = 'gvlad'  # 'avg', 'vlad' or 'gvlad'
 nn_params.loss = 'softmax'  # 'softmax' or 'amsoftmax'
 nn_params.test_type = 'normal'  # 'normal', 'hard' or 'extend'
 nn_params.optimizer = 'adam'  # 'sgd'
+
+model = model.vggvox_resnet2d_icassp(input_dim=nn_params.input_dim,
+                                     num_class=nn_params.num_classes,
+                                     mode=nn_params.mode,
+                                     params=nn_params)
+model.load_weights(nn_params.weights, by_name=True)
