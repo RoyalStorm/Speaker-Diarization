@@ -24,7 +24,7 @@ All segments will be saved in `ground_truth.txt` file in folder with audio (by d
 0:20.501 --> 0:23.603
 1:41.906 --> 1:43.648
 1:46.538 --> 1:56.624
-2:08.846 --> 2:10.422
+2:09.755 --> 2:10.422
 2:18.452 --> 2:19.74
 2:26.274 --> 2:37.370
 2:38.100 --> 2:41.682
@@ -35,15 +35,15 @@ All segments will be saved in `ground_truth.txt` file in folder with audio (by d
 0:14.448 --> 0:20.501
 0:23.603 --> 1:41.906
 1:43.648 --> 1:46.538
-1:56.624 --> 2:08.846
+1:56.624 --> 2:09.755
 2:10.422 --> 2:18.452
 2:19.74 --> 2:26.274
 2:37.370 --> 2:38.100
 
-0.08735
+0.08366
 ```
 
-And `DER` (Diarization Error Rate) in this case is `8.735%`.
+And `DER` (Diarization Error Rate) in this case is `8.366%`.
 
 ## Features
 
