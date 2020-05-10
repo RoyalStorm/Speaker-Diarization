@@ -296,15 +296,17 @@ def slide_window(audio_path, win_length=400, sr=16000, hop_length=160, n_fft=512
     return utterances_spec, intervals
 
 
-def visualize(embeddings, labels, dir):
-    with open(os.path.join(dir, 'metadata.tsv', 'w')) as metadata:
-        for label in labels:
-            metadata.write(f'speaker_{label}\n')
+def visualize(embeddings, predicted_labels, dir):
+    dir = os.path.join(dir, 'projections')
+
+    with open(os.path.join(dir, 'metadata.tsv'), 'w') as metadata:
+        for label in predicted_labels:
+            metadata.write(f'spk_{label}\n')
 
     sess = InteractiveSession()
 
     with tf.device("/cpu:0"):
-        embedding = tf.Variable(embeddings, trainable=False, name='diarization')
+        embedding = tf.Variable(embeddings, trainable=False, name='projections')
         global_variables_initializer().run()
         saver = Saver()
         writer = FileWriter(dir, sess.graph)
@@ -312,7 +314,7 @@ def visualize(embeddings, labels, dir):
         config = projector.ProjectorConfig()
         embed = config.embeddings.add()
         embed.tensor_name = 'embedding'
-        embed.metadata_path = os.path.join(dir, 'metadata.tsv')
+        embed.metadata_path = 'metadata.tsv'
 
         projector.visualize_embeddings(writer, config)
 
