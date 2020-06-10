@@ -3,8 +3,9 @@ from datetime import datetime
 
 import librosa
 import numpy as np
-import simpleder
 import tensorflow as tf
+from pyannote.core import Segment, Annotation
+from pyannote.metrics.diarization import DiarizationErrorRate
 from tensorboard.plugins import projector
 from tensorflow.compat.v1 import InteractiveSession
 from tensorflow.compat.v1 import global_variables_initializer
@@ -70,17 +71,12 @@ def _gen_map(intervals):  # interval slices to map table
     return map_table
 
 
-def _get_audio(audio_folder):
-    wavs = []
-
-    for file in os.listdir(audio_folder):
+def find_wav(dir):
+    for file in os.listdir(dir):
         if file.endswith('.wav'):
-            wavs.append(os.path.join(audio_folder, file))
+            return os.path.join(dir, file)
 
-    if wavs is not None:
-        return wavs
-    else:
-        raise FileExistsError(f'Folder "{audio_folder}" not contains *.wav file')
+    raise FileExistsError(f'Folder "{dir}" not contains *.wav file')
 
 
 def _vad(audio_path, sr):
@@ -94,21 +90,17 @@ def _vad(audio_path, sr):
     return np.array(audio_output), (intervals / sr * 1000).astype(int)
 
 
-def der(ground_truth_map, result_map):
+def der(reference, hypothesis):
     def convert(map):
-        segments = []
+        annotation = Annotation()
 
         for cluster in sorted(map.keys()):
             for row in map[cluster]:
-                segments.append((str(cluster), row['start'] / 1000, row['stop'] / 1000))
+                annotation[Segment(row['start'] / 1000, row['stop'] / 1000)] = str(cluster)
 
-        segments.sort(key=lambda segment: segment[1])
+        return annotation
 
-        return segments
-
-    der = simpleder.DER(convert(ground_truth_map), convert(result_map))
-
-    return round(der, 5)
+    return DiarizationErrorRate(convert(reference), convert(hypothesis), detailed=True)
 
 
 def generate_embeddings(specs):
@@ -124,62 +116,38 @@ def generate_embeddings(specs):
     return embeddings
 
 
-def ground_truth_map(audio_folder):
-    ground_truth_map_file = None
+def reference(dir):
+    reference_file = None
 
-    for file in os.listdir(audio_folder):
-        if file == consts.ground_truth_map_file:
-            ground_truth_map_file = os.path.join(audio_folder, file)
+    for file in os.listdir(dir):
+        if file == consts.reference_file:
+            reference_file = os.path.join(dir, file)
             break
 
-    with open(ground_truth_map_file, 'r') as file:
-        spk_number = 0
-        ground_truth_map = {spk_number: []}
-
-        def empty(line):
-            return line in ['\n', '\r\n']
+    with open(reference_file, 'r') as file:
+        reference = {}
 
         for line in file:
-            if empty(line):
-                spk_number += 1
-                ground_truth_map[spk_number] = []
+            start, stop, speaker = line.split(' ')[0], line.split(' ')[1], line.split(' ')[2].replace('\n', '')
+
+            dt_start = datetime.strptime(start, '%M:%S.%f')
+            dt_stop = datetime.strptime(stop, '%M:%S.%f')
+
+            start = dt_start.minute * 60_000 + dt_start.second * 1_000 + dt_start.microsecond / 1_000
+            stop = dt_stop.minute * 60_000 + dt_stop.second * 1_000 + dt_stop.microsecond / 1_000
+
+            if speaker in reference.keys():
+                reference[speaker].append({'start': start, 'stop': stop})
             else:
-                start, stop = line.split(' ')[0], line.split(' ')[1].replace('\n', '')
-                dt_start = datetime.strptime(start, '%M:%S.%f')
-                dt_stop = datetime.strptime(stop, '%M:%S.%f')
+                reference[speaker] = [{'start': start, 'stop': stop}]
 
-                start = dt_start.minute * 60_000 + dt_start.second * 1_000 + dt_start.microsecond / 1_000
-                stop = dt_stop.minute * 60_000 + dt_stop.second * 1_000 + dt_stop.microsecond / 1_000
-
-                ground_truth_map[spk_number].append({'start': start, 'stop': stop})
-
-    return ground_truth_map
+    return reference
 
 
 def linear_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
     linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
 
     return linear.T
-
-
-def load_voices_pull(dir):
-    true_labels = []
-    voices_pull_embeddings = []
-
-    for speaker in os.listdir(dir):
-        wavs = _get_audio(os.path.join(dir, speaker))
-
-        all_specs = []
-        for wav in wavs:
-            specs, _ = slide_window(audio_path=wav,
-                                    embedding_per_second=consts.slide_window_params.embedding_per_second,
-                                    overlap_rate=consts.slide_window_params.overlap_rate)
-            all_specs.extend(specs)
-
-        voices_pull_embeddings.extend(generate_embeddings(all_specs))
-        true_labels.extend([speaker for _ in range(len(all_specs))])
-
-    return np.array(voices_pull_embeddings), true_labels
 
 
 def result_map(intervals, predicted_labels):
@@ -216,7 +184,7 @@ def result_map(intervals, predicted_labels):
     return speaker_slice
 
 
-def save_and_report(plot, result_map, der, dim_reduce_params, cluster_params, dir=consts.audio_dir):
+def save_and_report(plot, result_map, der=None, dir=consts.audio_dir):
     # Make checkpoint
     checkpoint_dir = os.path.join(dir, f'{datetime.now():%Y%m%dT%H%M%S}')
     os.mkdir(checkpoint_dir)
@@ -235,31 +203,6 @@ def save_and_report(plot, result_map, der, dim_reduce_params, cluster_params, di
                 result.write(f'{_beautify_time(segment["start"])} --> {_beautify_time(segment["stop"])}\n')
 
         result.write(f'\n{der}')
-
-    # Write logs with testing params
-    with open(os.path.join(checkpoint_dir, consts.log_file), 'w') as log:
-        log.write(f'Dimension reduce by: {dim_reduce_params.name}\n')
-
-        if dim_reduce_params.name == 'UMAP':
-            log.write(f'    n_components = {dim_reduce_params.n_components}\n')
-            log.write(f'    n_neighbors = {dim_reduce_params.n_neighbors}\n')
-        elif dim_reduce_params.name == 't-SNE':
-            log.write(f'    n_components = {dim_reduce_params.n_components}\n')
-            log.write(f'    n_iter = {dim_reduce_params.n_iter}\n')
-            log.write(f'    learning_rate = {dim_reduce_params.learning_rate}\n')
-            log.write(f'    perplexity = {dim_reduce_params.perplexity}\n')
-
-        log.write(f'Clustering type by: {cluster_params.name}\n')
-
-        if cluster_params.name == 'HDBSCAN':
-            log.write(f'    min_cluster_size = {cluster_params.min_cluster_size}\n')
-            log.write(f'    min_samples = {cluster_params.min_samples}\n')
-        elif cluster_params.name == 'DBSCAN':
-            log.write(f'    eps = {cluster_params.eps}\n')
-            log.write(f'    min_samples = {cluster_params.min_samples}\n')
-
-        log.write(f'Embedding per second: {consts.slide_window_params.embedding_per_second}\n')
-        log.write(f'Overlap rate: {consts.slide_window_params.overlap_rate}')
 
     print(f'Diarization done. All results saved in {checkpoint_dir}.')
 

@@ -10,46 +10,12 @@ class Params(dict):
 
 
 # Contains *.wav file and ref.txt file with true map
-audio_dir = './tests/integration/fixtures/rtk/anatoliy_2'
-
-# Voices pull dir
-voices_pull_dir = './tests/integration/fixtures/rtk/_voices_pull'
+audio_dir = './sample'
 
 # File name with ground truth map
-ground_truth_map_file = 'ref.txt'
-# Log file name
-log_file = 'log.txt'
+reference_file = 'ref.txt'
 # File name with ground result map
 result_map_file = 'result.txt'
-
-# Default UMAP params
-umap_params = Params()
-umap_params.name = 'UMAP'
-umap_params.n_components = 2
-umap_params.n_neighbors = 15
-
-# Default t-SNE params
-tsne_params = Params()
-tsne_params.name = 't-SNE'
-tsne_params.n_components = 2
-tsne_params.n_iter = 3000
-tsne_params.n_iter_without_progress = 300
-tsne_params.metric = 'cosine'
-tsne_params.learning_rate = 250
-tsne_params.perplexity = 30
-tsne_params.init = 'pca'
-
-# Default HDBSCAN params
-hdbscan_params = Params()
-hdbscan_params.name = 'HDBSCAN'
-hdbscan_params.min_cluster_size = 15
-hdbscan_params.min_samples = 5
-
-# Default DBSCAN params
-dbscan_params = Params()
-dbscan_params.name = 'DBSCAN'
-dbscan_params.eps = 0.5
-dbscan_params.min_samples = 5
 
 # Default slide window params
 slide_window_params = Params()

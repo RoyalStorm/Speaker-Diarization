@@ -11,3 +11,5 @@ uisrnn.egg-info/*
 sample/
 
 tests/integration/fixtures
+
+venv

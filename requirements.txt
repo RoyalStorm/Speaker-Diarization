@@ -3,10 +3,10 @@ hdbscan
 librosa
 matplotlib
 numpy
-simpleder
 sklearn
 spectralcluster
 tensorboard==1.15.0
 tensorflow==1.15.0
 tensorflow-gpu==1.15.0
 umap-learn
+pyannote.metrics

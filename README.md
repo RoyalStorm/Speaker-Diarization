@@ -50,7 +50,7 @@ And `DER` (Diarization Error Rate) in this case is `8.366%`.
 D-vectors + UMAP/t-SNE + HDBSCAN
  - UIS-RNN replaced on HDBSCAN clustering
  - Second plot for true segments map
- - Silence removal
+ - VAD
  - DER output
  - TensorBoard embeddings visualization
 
@@ -90,7 +90,7 @@ predicted_labels = cluster_utils.cluster_by_hdbscan(embeddings)
 # new_utils.visualize(embeddings, predicted_label)
 
 # Step 8. Read real segments from file.
-ground_truth_map = new_utils.ground_truth_map(consts.audio_dir)
+ground_truth_map = new_utils.reference(consts.audio_dir)
 
 # Step 9. Get result segments.
 result_map = new_utils.result_map(intervals, predicted_labels)
