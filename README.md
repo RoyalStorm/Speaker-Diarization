@@ -14,7 +14,7 @@ and cluster them by `HDBSCAN`.
   <img src="assets/plot.png" alt="plot">
 </div>
 
-All segments will be saved in `ground_truth.txt` file in folder with audio (by default, it's `./sample`):
+All segments will be saved in `ref.txt` file in folder with audio (by default, it's `./sample`):
 
 ```
 0
@@ -47,17 +47,12 @@ And `DER` (Diarization Error Rate) in this case is `8.366%`.
 
 ## Features
 
-D-vectors + UMAP/t-SNE + HDBSCAN + KNN
+D-vectors + UMAP/t-SNE + HDBSCAN
  - UIS-RNN replaced on HDBSCAN clustering
- - Partial speaker identification from voices pull
  - Second plot for true segments map
+ - Silence removal
  - DER output
  - TensorBoard embeddings visualization
- - Integration tests
- 
-## Architecture
-
-Coming soon ...
 
 ## Usage
 
@@ -124,18 +119,6 @@ For TensorBoard embeddings visualization run `visualize()` function in `diarizat
 <div align="center">
   <img src="assets/tensorboard.png" alt="tensorboard">
 </div>
- 
-#### Integration tests
- 
-Coming soon ...
-
-## Future works and research
-
- - Silence removal
- - Add KNN classifier for partial identification
- - Configure params for t-SNE/UMAP and HDBSCAN
- - Change embeddings module to DeepSpeaker | [Source](https://github.com/philipperemy/deep-speaker)
- - Replace diarization part on some NN or train this version of UIS-RNN | [Source](https://github.com/DonkeyShot21/uis-rnn-sml)
 
 ## License
 

@@ -9,14 +9,14 @@ class Params(dict):
         self[key] = value
 
 
-# Contains *.wav file and ground_truth.txt file with true map
+# Contains *.wav file and ref.txt file with true map
 audio_dir = './tests/integration/fixtures/rtk/anatoliy_2'
 
 # Voices pull dir
 voices_pull_dir = './tests/integration/fixtures/rtk/_voices_pull'
 
 # File name with ground truth map
-ground_truth_map_file = 'ground_truth.txt'
+ground_truth_map_file = 'ref.txt'
 # Log file name
 log_file = 'log.txt'
 # File name with ground result map
