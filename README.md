@@ -14,7 +14,7 @@ and cluster them by `HDBSCAN`.
   <img src="assets/plot.png" alt="plot">
 </div>
 
-All segments will be saved in `ref.txt` file in folder with audio (by default, it's `./sample`):
+All segments will be saved in `result.txt` file in folder with audio (by default, it's `./sample`):
 
 ```
 0
@@ -107,8 +107,6 @@ plot.show()
 # Step 12. Save timestamps, der, plot and report about it.
 new_utils.save_and_report(plot=plot,
                           result_map=result_map,
-                          dim_reduce_params=consts.umap_params,
-                          cluster_params=consts.hdbscan_params,
                           der=der)
 ```
  

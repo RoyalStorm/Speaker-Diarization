@@ -100,7 +100,9 @@ def der(reference, hypothesis):
 
         return annotation
 
-    return DiarizationErrorRate(convert(reference), convert(hypothesis), detailed=True)
+    metric = DiarizationErrorRate()
+
+    return metric(convert(reference), convert(hypothesis), detailed=True)
 
 
 def generate_embeddings(specs):
@@ -202,7 +204,7 @@ def save_and_report(plot, result_map, der=None, dir=consts.audio_dir):
             for segment in result_map[cluster]:
                 result.write(f'{_beautify_time(segment["start"])} --> {_beautify_time(segment["stop"])}\n')
 
-        result.write(f'\n{der}')
+        result.write(f'\n{der:.3f}')
 
     print(f'Diarization done. All results saved in {checkpoint_dir}.')
 

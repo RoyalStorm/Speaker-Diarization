@@ -23,4 +23,4 @@ plot.draw_true_map()
 plot.draw_map()
 plot.show()
 
-new_utils.save_and_report(plot=plot, result_map=hypothesis)
+new_utils.save_and_report(plot=plot, result_map=hypothesis, der=der['diarization error rate'])

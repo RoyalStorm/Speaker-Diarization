@@ -8,8 +8,6 @@ uisrnn.egg-info/*
 .coverage
 .idea
 
-sample/
-
 tests/integration/fixtures
 
 venv
