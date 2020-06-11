@@ -4,6 +4,7 @@ from datetime import datetime
 import librosa
 import numpy as np
 import tensorflow as tf
+import torch
 from pyannote.core import Segment, Annotation
 from pyannote.metrics.diarization import DiarizationErrorRate
 from tensorboard.plugins import projector
@@ -81,13 +82,21 @@ def find_wav(dir):
 
 def _vad(audio_path, sr):
     audio, _ = librosa.load(audio_path, sr=sr)
-    intervals = librosa.effects.split(audio, top_db=20)
-    audio_output = []
 
-    for sliced in intervals:
+    audio_name = audio_path.split('/')[-1]
+    protocol = {'uri': f'{audio_name}.wav', 'audio': audio_path}
+    sad = torch.hub.load('pyannote/pyannote-audio', 'sad', pipeline=True)
+    sad_scores = sad(protocol)
+
+    speech = []
+    for speech_region in sad_scores.get_timeline():
+        speech.append((int(round(speech_region.start, 3) * sr), int(round(speech_region.end, 3) * sr)))
+
+    audio_output = []
+    for sliced in speech:
         audio_output.extend(audio[sliced[0]:sliced[1]])
 
-    return np.array(audio_output), (intervals / sr * 1000).astype(int)
+    return np.array(audio_output), (np.array(speech) / sr * 1000).astype(int)
 
 
 def der(reference, hypothesis):
@@ -152,6 +161,45 @@ def linear_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
     return linear.T
 
 
+def _remove_non_speech(speaker_slice, intervals):
+    speaker_slice_new = dict.fromkeys(speaker_slice.keys())
+
+    for speaker, timestamps_list in sorted(speaker_slice.items()):
+        timestamps_list_new = []
+        for i, timestamp in enumerate(timestamps_list):
+            for speech in intervals:
+                timestamp_new = dict.fromkeys(['start', 'stop'])
+
+                if list(timestamp.values())[0] in range(*speech) and list(timestamp.values())[1] in range(*speech):
+                    timestamps_list_new.append(timestamp)
+                    continue
+
+                if speech[0] in range(*timestamp.values()) and speech[1] in range(*timestamp.values()):
+                    timestamp_new['start'] = speech[0]
+                    timestamp_new['stop'] = speech[1]
+
+                    timestamps_list_new.append(timestamp_new)
+                    continue
+
+                if timestamp['start'] in range(*speech):
+                    timestamp_new['start'] = timestamp['start']
+                    timestamp_new['stop'] = speech[1]
+
+                    timestamps_list_new.append(timestamp_new)
+                    continue
+
+                if timestamp['stop'] in range(*speech):
+                    timestamp_new['start'] = speech[0]
+                    timestamp_new['stop'] = timestamp['stop']
+
+                    timestamps_list_new.append(timestamp_new)
+                    continue
+
+        speaker_slice_new[speaker] = timestamps_list_new
+
+    return speaker_slice_new
+
+
 def result_map(intervals, predicted_labels):
     # Speaker embedding every ? ms
     time_spec_rate = 1_000 * (1.0 / consts.slide_window_params.embedding_per_second) * (
@@ -183,15 +231,13 @@ def result_map(intervals, predicted_labels):
             speaker_slice[speaker][i]['start'] = s
             speaker_slice[speaker][i]['stop'] = e
 
-    return speaker_slice
+    return _remove_non_speech(speaker_slice, intervals)
 
 
 def save_and_report(plot, result_map, der=None, dir=consts.audio_dir):
-    # Make checkpoint
     checkpoint_dir = os.path.join(dir, f'{datetime.now():%Y%m%dT%H%M%S}')
     os.mkdir(checkpoint_dir)
 
-    # Write result segments and DER in file
     with open(os.path.join(checkpoint_dir, consts.result_map_file), 'w') as result:
         plot.save(checkpoint_dir)
 
@@ -204,7 +250,7 @@ def save_and_report(plot, result_map, der=None, dir=consts.audio_dir):
             for segment in result_map[cluster]:
                 result.write(f'{_beautify_time(segment["start"])} --> {_beautify_time(segment["stop"])}\n')
 
-        result.write(f'\n{der:.3f}')
+        result.write(f'\n{der:.4f}')
 
     print(f'Diarization done. All results saved in {checkpoint_dir}.')
 
