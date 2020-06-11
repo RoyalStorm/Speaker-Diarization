@@ -14,50 +14,99 @@ and cluster them by `HDBSCAN`.
   <img src="assets/plot.png" alt="plot">
 </div>
 
-All segments will be saved in `*.txt` file in folder with audio (by default, it's `./sample`):
+All segments will be saved in `result.txt` file in folder with audio (by default, it's `./sample`):
 
 ```
 0
-0:00.896 --> 0:06.16
-0:07.323 --> 0:08.816
-0:10.795 --> 0:14.448
-0:20.501 --> 0:23.603
-1:41.906 --> 1:43.648
-1:46.538 --> 1:56.624
-2:08.846 --> 2:10.422
-2:18.452 --> 2:19.74
-2:26.274 --> 2:37.370
-2:38.100 --> 2:41.682
+0:00.876 --> 0:04.776
+0:06.883 --> 0:08.683
+0:10.896 --> 0:11.197
+0:11.404 --> 0:14.703
+0:20.385 --> 0:20.631
+0:21.126 --> 0:23.580
+1:42.122 --> 1:42.180
+1:43.493 --> 1:43.735
+1:47.713 --> 1:47.796
+1:48.609 --> 1:51.274
+1:51.493 --> 1:53.702
+1:54.51 --> 1:56.594
+2:08.800 --> 2:08.961
+2:09.506 --> 2:10.245
+2:18.938 --> 2:19.238
+2:25.194 --> 2:25.552
+2:26.119 --> 2:30.366
+2:30.625 --> 2:31.829
+2:32.341 --> 2:33.492
+2:33.807 --> 2:35.247
+2:38.189 --> 2:40.589
 
 1
-0:06.16 --> 0:07.323
-0:08.816 --> 0:10.795
-0:14.448 --> 0:20.501
-0:23.603 --> 1:41.906
-1:43.648 --> 1:46.538
-1:56.624 --> 2:08.846
-2:10.422 --> 2:18.452
-2:19.74 --> 2:26.274
-2:37.370 --> 2:38.100
+0:04.776 --> 0:04.998
+0:05.905 --> 0:06.883
+0:08.683 --> 0:08.799
+0:10.112 --> 0:10.896
+0:14.703 --> 0:14.725
+0:16.183 --> 0:17.440
+0:17.800 --> 0:19.745
+0:20.9 --> 0:20.385
+0:23.580 --> 0:23.893
+0:24.207 --> 0:27.390
+0:27.930 --> 0:30.729
+0:31.337 --> 0:35.817
+0:36.367 --> 0:39.997
+0:41.40 --> 0:42.44
+0:42.260 --> 0:45.804
+0:46.513 --> 0:48.860
+0:49.476 --> 0:50.200
+0:50.726 --> 0:53.504
+0:54.332 --> 0:57.363
+0:57.723 --> 1:00.269
+1:00.684 --> 1:01.290
+1:01.611 --> 1:05.7
+1:05.470 --> 1:09.169
+1:09.571 --> 1:13.109
+1:13.511 --> 1:16.535
+1:17.11 --> 1:18.224
+1:18.516 --> 1:19.804
+1:20.543 --> 1:21.808
+1:22.431 --> 1:23.805
+1:24.562 --> 1:28.385
+1:29.164 --> 1:33.857
+1:34.490 --> 1:35.590
+1:35.972 --> 1:36.388
+1:36.952 --> 1:39.782
+1:40.266 --> 1:42.122
+1:43.735 --> 1:46.706
+1:47.384 --> 1:47.713
+1:56.594 --> 1:56.741
+1:57.116 --> 2:03.437
+2:03.861 --> 2:06.964
+2:07.271 --> 2:08.800
+2:10.245 --> 2:14.121
+2:14.522 --> 2:17.104
+2:17.751 --> 2:18.603
+2:18.748 --> 2:18.938
+2:19.238 --> 2:20.834
+2:21.374 --> 2:23.507
+2:24.423 --> 2:25.194
+2:35.247 --> 2:35.270
+2:37.12 --> 2:38.189
+2:40.589 --> 2:40.721
+2:41.489 --> 2:41.657
 
-0.08735
+0.0955
 ```
 
-And `DER` (Diarization Error Rate) in this case is `8.735%`.
+And `DER` (Diarization Error Rate) in this case is `9.55%`.
 
 ## Features
 
-D-vectors + UMAP/t-SNE + HDBSCAN + KNN
+D-vectors + UMAP/t-SNE + HDBSCAN
  - UIS-RNN replaced on HDBSCAN clustering
- - Partial speaker identification from voices pull
  - Second plot for true segments map
+ - VAD
  - DER output
  - TensorBoard embeddings visualization
- - Integration tests
- 
-## Architecture
-
-Coming soon ...
 
 ## Usage
 
@@ -70,48 +119,39 @@ from visualization.viewer import PlotDiar
 # Step 1. We may initialize GPU device, but it optional.
 toolkits.initialize_GPU(consts.nn_params.gpu)
 
-# Step 2. First of all, we need to create model and load weights.
-model = model.vggvox_resnet2d_icassp(input_dim=consts.nn_params.input_dim,
-                                     num_class=consts.nn_params.num_classes,
-                                     mode=consts.nn_params.mode,
-                                     params=consts.nn_params)
-model.load_weights(consts.nn_params.weights, by_name=True)
-
-# Step 3. Now we need to apply slide window to selected audio.
-specs, intervals = new_utils.slide_window(audio_folder=consts.audio_folder,
+# Step 2. Now we need to apply slide window to selected audio.
+wav = new_utils.find_wav(consts.audio_dir)
+specs, intervals = new_utils.slide_window(audio_path=wav,
                                           embedding_per_second=consts.slide_window_params.embedding_per_second,
                                           overlap_rate=consts.slide_window_params.overlap_rate)
 
-# Step 4. Generate embeddings from slices audio.
-embeddings = new_utils.generate_embeddings(model, specs)
-
-# Step 5. It step optionally, but I highly recommend reduce embeddings dimension to 2 or 3.
+# Step 3. Generate embeddings from slices audio.
+embeddings = new_utils.generate_embeddings(specs)
+# Step 4. It step optionally, but I highly recommend reduce embeddings dimension to 2 or 3.
 embeddings = cluster_utils.umap_transform(embeddings)
 
-# Step 6. Cluster all embeddings. Labels may contains noise (label will be "-1"), it should be remove from list.
+# Step 5. Cluster all embeddings. Labels may contains noise (label will be "-1"), it should be remove from list.
 predicted_labels = cluster_utils.cluster_by_hdbscan(embeddings)
 
-# Step 7. We can visualize generated embeddings with predicted labels.
+# Step 6. We can visualize generated embeddings with predicted labels.
 # new_utils.visualize(embeddings, predicted_label)
 
-# Step 8. Read real segments from file.
-ground_truth_map = new_utils.ground_truth_map(consts.audio_folder)
+# Step 7. Read real segments from file.
+reference = new_utils.reference(consts.audio_dir)
+# Step 8. Get result segments.
+hypothesis = new_utils.result_map(intervals, predicted_labels)
 
-# Step 9. Get result timestamps.
-map_table, keys = new_utils.gen_map(intervals)
-result_map = new_utils.result_map(map_table, keys, predicted_labels)
+# Step 9. Get DER (diarization error rate).
+der = new_utils.der(reference, hypothesis)
 
-# Step 10. Get DER (diarization error rate).
-der = new_utils.der(ground_truth_map, result_map)
-
-# Step 11. And now we can show both plots (ground truth and result).
-plot = PlotDiar(true_map=ground_truth_map, map=result_map, wav=consts.audio_folder, gui=True, size=(24, 6))
+# Step 10. And now we can show both plots (reference and hypothesis).
+plot = PlotDiar(true_map=reference, map=hypothesis, wav=consts.audio_dir, gui=True, size=(24, 6))
 plot.draw_true_map()
 plot.draw_map()
 plot.show()
 
-# Step 12. Save timestamps, der, plot and report about it.
-new_utils.save_and_report(plot, result_map, der)
+# Step 11. Save timestamps, der, plot and report about it.
+new_utils.save_and_report(plot=plot, result_map=hypothesis, der=der['diarization error rate'])
 ```
  
 #### TensorBoard
@@ -121,18 +161,6 @@ For TensorBoard embeddings visualization run `visualize()` function in `diarizat
 <div align="center">
   <img src="assets/tensorboard.png" alt="tensorboard">
 </div>
- 
-#### Integration tests
- 
-Coming soon ...
-
-## Future works and research
-
- - Add KNN classifier for partial identification
- - Configure params for t-SNE/UMAP and HDBSCAN
- - Remove silence from plot
- - Change embeddings module to DeepSpeaker | [Source](https://github.com/philipperemy/deep-speaker)
- - Replace diarization part on some NN or train this version of UIS-RNN | [Source](https://github.com/DonkeyShot21/uis-rnn-sml)
 
 ## License
 

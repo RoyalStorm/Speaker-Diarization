@@ -2,8 +2,6 @@ import os
 
 import matplotlib.pyplot as plt
 
-from embedding import consts
-
 
 class PlotDiar:
     """
@@ -54,21 +52,6 @@ class PlotDiar:
         self.max_y = 0
         self.end_play = 0
 
-    def draw_true_map(self):
-        self._draw_info(self.true_ax, 'True segments', 'True speakers', f'True diarization map for {self.wav}')
-        self._draw_segments(self.true_ax, self.true_map, self.true_timestamps)
-
-    def draw_map(self):
-        self._draw_segments(self.ax, self.map, self.timestamps)
-        self._draw_info(self.ax, 'Detected segments', 'Detected speakers', f'Detected diarization map for {self.wav}')
-
-    def save(self, name='plot'):
-        self.fig.savefig(os.path.join(consts.audio_folder, name))
-
-    def show(self):
-        self.plt.tight_layout()
-        self.plt.show()
-
     def _draw_info(self, ax, xlabel, ylabel, title):
         ax.set_title(title)
         ax.set_xlabel(xlabel)
@@ -78,7 +61,6 @@ class PlotDiar:
         labels_position = []
         labels = []
         y = 0
-        self.max_x = 0
         self.max_y = 0
 
         for i, cluster in enumerate(sorted(map.keys())):
@@ -119,6 +101,21 @@ class PlotDiar:
         timestamps = list(set(self.timestamps)).sort()
 
         return timestamps
+
+    def draw_true_map(self):
+        self._draw_info(self.true_ax, 'True segments', 'True speakers', f'True diarization map for {self.wav}')
+        self._draw_segments(self.true_ax, self.true_map, self.true_timestamps)
+
+    def draw_map(self):
+        self._draw_segments(self.ax, self.map, self.timestamps)
+        self._draw_info(self.ax, 'Detected segments', 'Detected speakers', f'Detected diarization map for {self.wav}')
+
+    def save(self, dir, plot_name='plot'):
+        self.fig.savefig(os.path.join(dir, plot_name))
+
+    def show(self):
+        self.plt.tight_layout()
+        self.plt.show()
 
     @classmethod
     def _hms(cls, seconds):
