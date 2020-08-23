@@ -1,4 +1,4 @@
-# Speaker Diarization: A System For Solving Cocktail Party Problem With Partial Speakers Identification.
+# Speaker Diarization: A System For Solving Cocktail Party Problem.
 
 Reimplementation of diarization module by Dong Lu | [Source](https://github.com/taylorlu/Speaker-Diarization)
 
@@ -112,7 +112,7 @@ D-vectors + UMAP/t-SNE + HDBSCAN
 
 #### Diarization module
  
-```python
+```python3
 from embedding import cluster_utils, model, consts, new_utils, toolkits
 from visualization.viewer import PlotDiar
 
